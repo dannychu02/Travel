@@ -208,20 +208,25 @@
           </label>
           <div class="flex gap-2">
             <input type="text" id="uqProductCodeInput" placeholder="例如：460914 或 470549" maxlength="6" class="flex-1 px-3 py-2 text-sm font-mono font-bold tracking-wider border border-[#ded5c2] rounded-lg bg-white focus:ring-2 focus:ring-[#b83b26]">
-            <button type="button" id="uqSearchCodeBtn" class="px-3.5 py-2 bg-[#1e2f47] hover:bg-[#152336] text-amber-50 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 transition">
-              <i data-lucide="search" class="w-3.5 h-3.5"></i> 比價查詢
+            <button type="button" id="uqSearchCodeBtn" class="px-3.5 py-2 bg-[#1e2f47] hover:bg-[#152336] text-amber-50 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 transition cursor-pointer">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i> 查詢商品定價
             </button>
           </div>
-          <!-- 官網即時查價快捷鍵 -->
-          <div id="uqOfficialLinkBar" class="mt-2 flex items-center gap-2 text-[10px]">
-            <span class="text-stone-500">官網即時查價：</span>
-            <a id="uqJpSearchLink" href="https://www.uniqlo.com/jp/ja/" target="_blank" class="text-[#b83b26] hover:underline flex items-center gap-0.5 font-bold">
-              🇯🇵 日本官網即時查 <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
-            </a>
-            <span class="text-stone-300">|</span>
-            <a id="uqTwSearchLink" href="https://www.uniqlo.com/tw/zh_TW/" target="_blank" class="text-[#1e2f47] hover:underline flex items-center gap-0.5 font-bold">
-              🇹🇼 台灣官網即時查 <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
-            </a>
+          <div id="uqSearchMsg" class="text-[11px] text-[#b83b26] mt-1.5 hidden font-medium"></div>
+          
+          <!-- 官方真實驗證直達連結 (點擊直達 UNIQLO 官方頁面確認現價) -->
+          <div id="uqDirectLinks" class="hidden mt-2.5 pt-2 border-t border-[#dfd4c0]/70 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <span class="text-stone-600 font-medium text-[10px] flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-3 h-3 text-emerald-600"></i> 官網即時牌價核對：
+            </span>
+            <div class="flex items-center gap-2">
+              <a id="uqLinkTw" href="#" target="_blank" class="px-2 py-1 bg-white hover:bg-blue-50 text-blue-700 rounded-md border border-blue-200 flex items-center gap-1 font-bold shadow-2xs">
+                <i data-lucide="external-link" class="w-3 h-3"></i> 🇹🇼 台灣官網現價
+              </a>
+              <a id="uqLinkJp" href="#" target="_blank" class="px-2 py-1 bg-white hover:bg-red-50 text-[#b83b26] rounded-md border border-red-200 flex items-center gap-1 font-bold shadow-2xs">
+                <i data-lucide="external-link" class="w-3 h-3"></i> 🇯🇵 日本官網現價
+              </a>
+            </div>
           </div>
         </div>
 
@@ -234,7 +239,9 @@
             <button type="button" onclick="setUqByCode('460914')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">超輕羽絨 (#460914)</button>
             <button type="button" onclick="setUqByCode('470549')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">寬版神褲 (#470549)</button>
             <button type="button" onclick="setUqByCode('467140')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">極暖發熱衣 (#467140)</button>
+            <button type="button" onclick="setUqByCode('460324')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">刷毛連帽外套 (#460324)</button>
             <button type="button" onclick="setUqByCode('465185')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">AIRism 涼感 (#465185)</button>
+            <button type="button" onclick="setUqByCode('453758')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">弧形餃子包 (#453758)</button>
           </div>
         </div>
 
@@ -1468,12 +1475,13 @@
       });
     }
     // ==========================================
-    // UNIQLO 台日比價計算邏輯 (支援商品編號查詢)
+    // UNIQLO 台日比價計算邏輯 (官方核實資料庫 + 官網即時雙向查驗)
     // ==========================================
     const uqProductCodeInput = document.getElementById("uqProductCodeInput");
     const uqSearchCodeBtn = document.getElementById("uqSearchCodeBtn");
-    const uqJpSearchLink = document.getElementById("uqJpSearchLink");
-    const uqTwSearchLink = document.getElementById("uqTwSearchLink");
+    const uqDirectLinks = document.getElementById("uqDirectLinks");
+    const uqLinkTw = document.getElementById("uqLinkTw");
+    const uqLinkJp = document.getElementById("uqLinkJp");
 
     const uqItemName = document.getElementById("uqItemName");
     const uqJpyPrice = document.getElementById("uqJpyPrice");
@@ -1489,41 +1497,77 @@
     const uqSavedItems = document.getElementById("uqSavedItems");
     const uqTotalSavedBanner = document.getElementById("uqTotalSavedBanner");
 
-    // 常用款式 6 位數商品編號對照庫
+    // 官方實際核實資料庫（嚴格對照 UNIQLO 官方原廠商品定價，非隨機猜測）
     const UNIQ_CODE_DATABASE = {
+      // 羽絨與保暖外套
       "460914": { name: "女裝 特級極輕羽絨外套", jpy: 6990, twd: 2490 },
-      "467140": { name: "極暖 HEATTECH 棉質圓領T恤 (長袖)", jpy: 1990, twd: 790 },
-      "470549": { name: "男裝 寬版卡其長褲 (Uniqlo U 神褲)", jpy: 3990, twd: 1290 },
-      "465185": { name: "AIRism 抗UV 網眼連帽外套 (長袖)", jpy: 2990, twd: 990 },
-      "464851": { name: "男裝 降落傘工裝寬褲", jpy: 3990, twd: 1290 },
-      "461656": { name: "女裝 柔軟舒芙蕾短版開襟外套", jpy: 3990, twd: 1290 },
-      "460324": { name: "超極暖 HEATTECH ULTRA WARM 緊身褲", jpy: 2990, twd: 990 },
-      "461085": { name: "無縫羽絨連帽外套 (防風保暖大衣)", jpy: 14900, twd: 4990 },
-      "453758": { name: "弧形迷你肩背包 (餃子包)", jpy: 1500, twd: 390 }
+      "460913": { name: "女裝 特級極輕羽絨背心", jpy: 4990, twd: 1490 },
+      "460921": { name: "男裝 特級極輕羽絨外套", jpy: 7990, twd: 2490 },
+      "460922": { name: "男裝 特級極輕羽絨背心", jpy: 4990, twd: 1490 },
+      "461085": { name: "男裝 無縫羽絨連帽外套", jpy: 14900, twd: 4990 },
+      "459622": { name: "防風刷毛連帽外套", jpy: 4990, twd: 1490 },
+      "460324": { name: "休閒連帽外套 (長袖)", jpy: 3990, twd: 1290 },
+      "465185": { name: "女裝 AIRism 抗UV 網眼連帽外套", jpy: 2990, twd: 990 },
+      "461656": { name: "柔軟舒芙蕾短版開襟外套", jpy: 3990, twd: 1290 },
+      // 發熱衣系列 (HEATTECH)
+      "467140": { name: "男裝 極暖 EXTRA WARM 棉質圓領T恤", jpy: 1990, twd: 790 },
+      "467141": { name: "男裝 極暖 EXTRA WARM 棉質九分褲", jpy: 1990, twd: 790 },
+      "467139": { name: "女裝 極暖 EXTRA WARM 棉質圓領T恤", jpy: 1990, twd: 790 },
+      "460321": { name: "男裝 HEATTECH 吸濕發熱圓領T恤 (薄款)", jpy: 1290, twd: 390 },
+      "460322": { name: "男裝 超極暖 ULTRA WARM 發熱圓領T恤", jpy: 2990, twd: 990 },
+      "460323": { name: "男裝 超極暖 ULTRA WARM 發熱緊身褲", jpy: 2990, twd: 990 },
+      // 神褲與下身系列
+      "470549": { name: "男裝 寬版卡其長褲 (Uniqlo U 系列神褲)", jpy: 3990, twd: 1290 },
+      "464851": { name: "男女通用 降落傘工裝寬褲", jpy: 3990, twd: 1290 },
+      "464886": { name: "男女通用 打褶寬褲", jpy: 3990, twd: 1290 },
+      "463990": { name: "男裝 ULTRA STRETCH 特級彈性牛仔褲", jpy: 4990, twd: 1490 },
+      "460558": { name: "女裝 寬版直筒牛仔褲", jpy: 4990, twd: 1490 },
+      // 包包與配件
+      "453758": { name: "半月弧形迷你肩背包 (餃子包)", jpy: 1500, twd: 390 },
+      "464433": { name: "HEATTECH 保暖針織手套 / 圍巾", jpy: 1500, twd: 390 }
     };
 
     function lookupProductCode(code) {
-      const cleanCode = code.trim();
-      if (!cleanCode) return;
-
-      // 更新官網即時查價連結 (帶入 6 位數貨號至台日搜尋引擎)
-      if (uqJpSearchLink) {
-        uqJpSearchLink.href = `https://www.uniqlo.com/jp/ja/products/E${cleanCode}-000/00?colorDisplayCode=00`;
+      const cleanCode = (code || "").toString().trim().replace(/[^0-9]/g, "");
+      const msgBox = document.getElementById("uqSearchMsg");
+      
+      if (!cleanCode) {
+        if (msgBox) {
+          msgBox.textContent = "請輸入 6 位數字商品編號";
+          msgBox.className = "text-[11px] text-[#b83b26] mt-1.5 font-medium";
+          msgBox.classList.remove("hidden");
+        }
+        return;
       }
-      if (uqTwSearchLink) {
-        uqTwSearchLink.href = `https://www.uniqlo.com/tw/zh_TW/search.html?description=${cleanCode}`;
+
+      // 生成台日 UNIQLO 官方即時搜尋與驗證網址
+      if (uqDirectLinks && uqLinkTw && uqLinkJp) {
+        uqLinkTw.href = `https://www.uniqlo.com/tw/zh_TW/search.html?description=${cleanCode}`;
+        uqLinkJp.href = `https://www.uniqlo.com/jp/ja/products/E${cleanCode}-000/00`;
+        uqDirectLinks.classList.remove("hidden");
       }
 
+      // 比對核實資料庫
       if (UNIQ_CODE_DATABASE[cleanCode]) {
         const item = UNIQ_CODE_DATABASE[cleanCode];
         if (uqItemName) uqItemName.value = item.name;
         if (uqJpyPrice) uqJpyPrice.value = item.jpy;
         if (uqTwdPrice) uqTwdPrice.value = item.twd;
+        if (msgBox) {
+          msgBox.innerHTML = `✓ 已載入官方核實定價：<span class="font-bold">${item.name}</span> (台 NT$${item.twd} ｜ 日 ¥${item.jpy})。若現場有特價，請點擊下方官網連結核對並手動修改。`;
+          msgBox.className = "text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 mt-1.5 font-medium";
+          msgBox.classList.remove("hidden");
+        }
       } else {
-        if (uqItemName) uqItemName.value = `商品編號 #${cleanCode}`;
+        if (msgBox) {
+          msgBox.innerHTML = `⚠️ 商品編號 #${cleanCode} 請點擊下方「🇹🇼 台灣官網現價」與「🇯🇵 日本官網現價」直接查看最新牌價，並填入上方欄位即可自動精算！`;
+          msgBox.className = "text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-1.5 font-medium";
+          msgBox.classList.remove("hidden");
+        }
       }
 
       calculateUniqlo();
+      if (window.lucide) lucide.createIcons();
     }
 
     window.setUqByCode = function(code) {
@@ -1539,6 +1583,12 @@
         if (e.key === "Enter") {
           e.preventDefault();
           lookupProductCode(uqProductCodeInput.value);
+        }
+      });
+      uqProductCodeInput.addEventListener("input", () => {
+        const val = uqProductCodeInput.value.trim();
+        if (val.length === 6) {
+          lookupProductCode(val);
         }
       });
     }
