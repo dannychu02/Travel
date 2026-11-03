@@ -1257,6 +1257,62 @@
     } catch(e) {
       uqSavedList = [];
     }
+
+    // 全域變數明確宣告 (避免在 GitHub Pages / 嚴格環境下拋出 ReferenceError 導致後續程式碼全部中斷)
+    let currentDayIndex = 0;
+    let currentJpyTwdRate = 0.2100;
+    let mapInstance = null;
+    let mapMarkersLayer = null;
+    let mapPolyline = null;
+    let mapMarkers = [];
+
+    // DOM 元素快取宣告
+    const dayBadge = document.getElementById("dayBadge");
+    const dayDate = document.getElementById("dayDate");
+    const dayTitle = document.getElementById("dayTitle");
+    const dayNotes = document.getElementById("dayNotes");
+    const spotName = document.getElementById("spotName");
+    const stopCountBadge = document.getElementById("stopCountBadge");
+    const dayNavList = document.getElementById("dayNavList");
+    const mobileCardsContainer = document.getElementById("mobileCardsContainer");
+    const emptyState = document.getElementById("emptyState");
+
+    const weatherLocationName = document.getElementById("weatherLocationName");
+    const weatherTemp = document.getElementById("weatherTemp");
+    const weatherCondition = document.getElementById("weatherCondition");
+    const weatherApparent = document.getElementById("weatherApparent");
+    const weatherWind = document.getElementById("weatherWind");
+    const weatherIconBox = document.getElementById("weatherIconBox");
+    const weatherAdvice = document.getElementById("weatherAdvice");
+    const refreshWeatherBtn = document.getElementById("refreshWeatherBtn");
+
+    const itineraryMap = document.getElementById("itineraryMap");
+    const toggleMapSizeBtn = document.getElementById("toggleMapSizeBtn");
+    const toggleMapSizeText = document.getElementById("toggleMapSizeText");
+    const floatingMapResizeBtn = document.getElementById("floatingMapResizeBtn");
+    const floatingMapResizeText = document.getElementById("floatingMapResizeText");
+
+    const addStopBtn = document.getElementById("addStopBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const exportBtn = document.getElementById("exportBtn");
+
+    const modalOverlay = document.getElementById("modalOverlay");
+    const modalTitle = document.getElementById("modalTitle");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const cancelModalBtn = document.getElementById("cancelModalBtn");
+    const itemForm = document.getElementById("itemForm");
+    const editIndexInput = document.getElementById("editIndex");
+    const itemTimeInput = document.getElementById("itemTime");
+    const itemNameInput = document.getElementById("itemName");
+    const itemDurationInput = document.getElementById("itemDuration");
+    const itemLatInput = document.getElementById("itemLat");
+    const itemLngInput = document.getElementById("itemLng");
+    const itemNotesInput = document.getElementById("itemNotes");
+    const itemFoodsInput = document.getElementById("itemFoods");
+
+    const checklistItems = document.getElementById("checklistItems");
+    const checklistProgress = document.getElementById("checklistProgress");
+
     // 旅遊工具分頁切換
     const tabItinerary = document.getElementById("tabItinerary");
     const tabSplitBill = document.getElementById("tabSplitBill");
@@ -1363,12 +1419,53 @@
           }
         }
       } catch (err) {
-        console.warn("無法取得即時匯率，使用備援預設匯率", err);
+        console.warn("無法取得即時匯率，嘗試備援管道", err);
+        try {
+          const backupRes = await fetch("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/jpy.json");
+          if (backupRes.ok) {
+            const bData = await backupRes.json();
+            if (bData && bData.jpy && bData.jpy.twd) {
+              currentJpyTwdRate = parseFloat(bData.jpy.twd);
+              const formattedRate = currentJpyTwdRate.toFixed(4);
+              if (rateBadge) rateBadge.textContent = `1 JPY ≈ NT$ ${formattedRate}`;
+              if (customRateInput) customRateInput.value = formattedRate;
+              if (splitExchangeRateLabel) splitExchangeRateLabel.textContent = `即時匯率 ${formattedRate}`;
+              updateCurrencyCalculation();
+              calculateUniqlo();
+              renderExpenses();
+              return;
+            }
+          }
+        } catch(bErr) {}
       }
       if (rateBadge) rateBadge.textContent = `1 JPY ≈ NT$ ${currentJpyTwdRate.toFixed(4)} (離線預設)`;
-      if (rateUpdateTime) rateUpdateTime.textContent = "更新時間：離線狀態";
+      if (rateUpdateTime) rateUpdateTime.textContent = "更新時間：離線預設";
       updateCurrencyCalculation();
       calculateUniqlo();
+    }
+
+    function updateCurrencyCalculation() {
+      if (!calcJPY || !calcTWD) return;
+      const jpyVal = parseFloat(calcJPY.value) || 0;
+      const rate = customRateInput && !isNaN(parseFloat(customRateInput.value)) 
+        ? parseFloat(customRateInput.value) 
+        : currentJpyTwdRate;
+      calcTWD.value = Math.round(jpyVal * rate);
+    }
+
+    if (calcJPY) {
+      calcJPY.addEventListener("input", updateCurrencyCalculation);
+    }
+    if (customRateInput) {
+      customRateInput.addEventListener("input", () => {
+        const customRate = parseFloat(customRateInput.value);
+        if (!isNaN(customRate) && customRate > 0) {
+          currentJpyTwdRate = customRate;
+          updateCurrencyCalculation();
+          calculateUniqlo();
+          renderExpenses();
+        }
+      });
     }
     // ==========================================
     // UNIQLO 台日比價計算邏輯 (支援商品編號查詢)
