@@ -1,37 +1,56 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>九州大阪 11 日行程表</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>九州・關西 11 日自由行指南 | 初訪者專屬行程與景點規劃</title>
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            torinoko: '#f7f4ee', // 日本傳統色：鳥之子色 (溫暖象牙白)
+            wafuBg: '#f2ece0',
+            rurikon: '#1e3a5f',   // 琉璃紺 (深邃穩重藍)
+            akane: '#b83b26',     // 茜色 (和風強調紅)
+            matcha: '#285943',    // 宇治抹茶綠
+          },
+          fontFamily: {
+            sans: ['"PingFang TC"', '"Noto Sans TC"', 'system-ui', '-apple-system', 'sans-serif'],
+            serif: ['"Noto Serif TC"', 'Georgia', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=Zen+Old+Mincho:wght@700&display=swap');
-    body {
-      font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
+    /* 避免行動裝置橫向晃動與滾動條干擾 */
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden;
+      background-color: #f7f4ee;
+      color: #292524;
       -webkit-tap-highlight-color: transparent;
-      background-color: #f7f4ee; /* 日本傳統色：鳥之子色 Torinoko */
     }
-    .font-wafu {
-      font-family: 'Zen Old Mincho', 'Noto Sans TC', serif;
+
+    /* 支援減少動態效果 (無障礙) */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
-    .custom-map-pin {
-      background-color: #1e3a5f; /* 琉璃紺 / 深藍 */
-      color: #fff;
-      border-radius: 9999px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 11px;
-      border: 2px solid #e2d9c8;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25);
-    }
+
+    /* 隱藏原生滾動條但保持滑動 */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -39,2442 +58,1430 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
-    /* 頂部導覽列平滑隱藏與地圖位置自適應 */
-    #mainHeader {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      will-change: transform;
-    }
-    #mainHeader.nav-hidden {
-      transform: translateY(-100%);
-    }
-    #mapWrapper {
-      transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    #mapWrapper.map-pinned-top {
-      top: 8px !important;
+
+    /* 焦點可見外框 (鍵盤導航 accessibility) */
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid #b83b26;
+      outline-offset: 2px;
     }
   </style>
 </head>
-<body class="text-stone-800 antialiased min-h-screen pb-8 flex flex-col">
+<body class="flex flex-col min-h-screen text-stone-800 antialiased font-sans pb-24 md:pb-8">
 
-  <!-- Mobile-First Sticky Header (加入智慧隱藏 ID) -->
-  <header id="mainHeader" class="bg-[#fcfaf7]/95 backdrop-blur-md border-b border-[#e6decb] sticky top-0 z-30 shadow-xs">
-    <div class="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-[#b83b26] flex items-center justify-center text-amber-50 shadow-sm border border-[#9b2f1d]">
-          <i data-lucide="compass" class="w-4 h-4"></i>
+  <!-- ===============================
+       頁首導覽列 (Responsive Top Header)
+       =============================== -->
+  <header class="sticky top-0 z-40 bg-[#f7f4ee]/95 backdrop-blur-md border-b border-[#e5dcce] shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+      
+      <!-- 網站標誌 -->
+      <button onclick="navigateView('home')" class="flex items-center gap-2.5 text-left group cursor-pointer" aria-label="回到首頁">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-akane flex items-center justify-center text-amber-50 shadow-sm border border-[#9b2f1d] group-hover:scale-105 transition-transform">
+          <i data-lucide="compass" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
         <div>
-          <h1 class="font-bold text-stone-900 text-sm leading-tight font-wafu tracking-wide">
-            九州・關西 11 日和風行
-          </h1>
-          <p class="text-[11px] text-stone-500">主揪：朱家德 ｜ 8 人同行手冊</p>
+          <span class="block font-bold text-sm sm:text-base tracking-wide text-rurikon font-serif">
+            九州・關西 11 日漫旅
+          </span>
+          <span class="block text-[10px] sm:text-xs text-stone-500 font-normal">初次自由行專屬導引</span>
         </div>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <button id="resetBtn" class="p-2 border border-[#dcd2be] hover:bg-[#ede5d3] text-stone-700 rounded-lg text-xs" title="重設預設">
-          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-        </button>
-        <button id="exportBtn" class="p-2 bg-[#1e2f47] hover:bg-[#152336] text-amber-100 rounded-lg text-xs shadow-sm border border-[#121c2b]" title="備份下載">
-          <i data-lucide="download" class="w-4 h-4"></i>
-        </button>
-      </div>
-    </div>
+      </button>
 
-    <!-- Travel Tools Quick Tabs -->
-    <div class="px-3 py-1.5 bg-[#f2ece0] border-t border-[#e2d8c3] flex items-center justify-between text-xs overflow-x-auto no-scrollbar gap-2">
-      <div class="flex items-center gap-1.5">
-        <button id="tabItinerary" class="tool-tab-btn active px-2.5 py-1 rounded-lg bg-[#b83b26] text-amber-50 font-bold flex items-center gap-1">
-          <i data-lucide="calendar" class="w-3.5 h-3.5"></i> 行程
+      <!-- 桌面版快速導覽列 (>= md) -->
+      <nav class="hidden md:flex items-center gap-1.5" aria-label="主選單">
+        <button onclick="navigateView('home')" class="nav-desktop-btn px-3.5 py-1.5 rounded-lg text-sm font-semibold transition" data-nav="home">
+          首頁總覽
         </button>
-        <button id="tabSplitBill" class="tool-tab-btn px-2.5 py-1 rounded-lg bg-[#eae3d2] text-stone-700 hover:bg-[#dfd6c2] font-semibold flex items-center gap-1">
-          <i data-lucide="calculator" class="w-3.5 h-3.5 text-[#b83b26]"></i> 8人分帳
+        <button onclick="navigateView('spots')" class="nav-desktop-btn px-3.5 py-1.5 rounded-lg text-sm font-semibold transition" data-nav="spots">
+          探索景點
         </button>
-        <button id="tabCurrency" class="tool-tab-btn px-2.5 py-1 rounded-lg bg-[#eae3d2] text-stone-700 hover:bg-[#dfd6c2] font-semibold flex items-center gap-1">
-          <i data-lucide="japanese-yen" class="w-3.5 h-3.5 text-[#b83b26]"></i> 匯率換算
+        <button onclick="navigateView('itinerary')" class="nav-desktop-btn px-3.5 py-1.5 rounded-lg text-sm font-semibold transition flex items-center gap-1" data-nav="itinerary">
+          <i data-lucide="calendar" class="w-4 h-4"></i>
+          11日行程路線
         </button>
-        <button id="tabUniqlo" class="tool-tab-btn px-2.5 py-1 rounded-lg bg-[#eae3d2] text-stone-700 hover:bg-[#dfd6c2] font-semibold flex items-center gap-1">
-          <i data-lucide="tag" class="w-3.5 h-3.5 text-[#b83b26]"></i> Uniqlo比價
-        </button>
-        <button id="tabChecklist" class="tool-tab-btn px-2.5 py-1 rounded-lg bg-[#eae3d2] text-stone-700 hover:bg-[#dfd6c2] font-semibold flex items-center gap-1">
-          <i data-lucide="check-square" class="w-3.5 h-3.5 text-[#b83b26]"></i> 行李清單
-        </button>
-      </div>
-    </div>
+      </nav>
 
-    <!-- Mobile Horizontal Days Bar -->
-    <div id="daysNavBarContainer" class="border-t border-[#eee7d8] bg-[#f7f3ea] px-2 py-2">
-      <div id="dayNavList" class="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth px-1">
-        <!-- Generated by JS -->
+      <!-- 右側快速收藏入口與狀態 -->
+      <div class="flex items-center gap-2">
+        <button onclick="toggleFavFilterFromHeader()" class="px-3 py-1.5 rounded-xl border border-[#ded5c2] bg-white hover:bg-[#ede5d3] text-xs font-semibold flex items-center gap-1.5 transition text-stone-700 shadow-2xs" aria-label="查看已收藏景點">
+          <i data-lucide="heart" class="w-4 h-4 text-akane fill-akane/20"></i>
+          <span class="hidden sm:inline">我的收藏</span>
+          <span id="favCountBadge" class="bg-akane text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-4.5 text-center">0</span>
+        </button>
       </div>
+
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="max-w-4xl mx-auto px-3 sm:px-4 py-4 w-full flex-1">
+  <!-- ===============================
+       主要內容區域 (SPA 視圖容器)
+       =============================== -->
+  <main class="max-w-6xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 w-full flex-1">
 
-    <!-- TOOL VIEW 1: 8人分帳計算機 -->
-    <div id="viewSplitBill" class="hidden space-y-4">
-      <div class="bg-[#fcfaf7] rounded-2xl p-4 border border-[#ded5c2] shadow-xs">
-        <h2 class="text-base font-bold text-stone-900 font-wafu flex items-center gap-2 mb-1">
-          <i data-lucide="calculator" class="w-4 h-4 text-[#b83b26]"></i> 8 人團體日圓記帳與分帳工具
-        </h2>
-        <p class="text-xs text-stone-500 mb-3">記錄用餐、計程車、門票等公帳，自動平均分攤並換算台幣。</p>
+    <!-- ==============================================
+         VIEW 1: 首頁 (HOME VIEW)
+         ============================================== -->
+    <section id="viewHome" class="space-y-6 sm:space-y-8">
+      
+      <!-- 主視覺 Banner (明亮真實自然城景、不過大覆蓋標題) -->
+      <div class="relative rounded-3xl overflow-hidden border border-[#ded5c2] shadow-sm bg-stone-900 min-h-[260px] sm:min-h-[320px] flex flex-col justify-end p-5 sm:p-8">
+        <img 
+          src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1600&q=80" 
+          alt="明亮清晰的日本城市街景與晴朗天空" 
+          class="absolute inset-0 w-full h-full object-cover opacity-60"
+          loading="eager"
+        >
+        <div class="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-900/40 to-transparent"></div>
         
-        <form id="expenseForm" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
-          <input type="text" id="expenseItem" placeholder="支出項目 (如: 肉屋肉一晚餐)" required class="px-3 py-2 border border-[#ded5c2] rounded-xl text-xs bg-white">
-          <input type="number" id="expenseAmount" placeholder="金額 (日圓 JPY)" required class="px-3 py-2 border border-[#ded5c2] rounded-xl text-xs bg-white">
-          <button type="submit" class="px-4 py-2 bg-[#b83b26] text-amber-50 rounded-xl text-xs font-bold hover:bg-[#9b2f1d] transition">
-            ＋ 新增支出
-          </button>
-        </form>
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-[#f5ede2] rounded-xl border border-[#dfd4c0] mb-3 text-center">
-          <div>
-            <div class="text-[10px] text-stone-500 font-medium">總支出金額</div>
-            <div id="totalExpenseJPY" class="text-base font-bold text-[#b83b26]">¥0</div>
+        <div class="relative z-10 max-w-2xl text-amber-50">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-akane/90 text-white text-xs font-semibold mb-2.5 backdrop-blur-xs">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>第一次日本自由行新手推薦路線</span>
           </div>
-          <div>
-            <div class="text-[10px] text-stone-500 font-medium">每人應付 (8人)</div>
-            <div id="perPersonJPY" class="text-base font-bold text-stone-900">¥0</div>
-          </div>
-          <div class="col-span-2 sm:col-span-1">
-            <div class="text-[10px] text-stone-500 font-medium">每人約折合台幣 (<span id="splitExchangeRateLabel">即時匯率</span>)</div>
-            <div id="perPersonTWD" class="text-base font-bold text-[#25523b]">NT$ 0</div>
-          </div>
-        </div>
-
-        <div id="expenseList" class="space-y-1.5 max-h-60 overflow-y-auto">
-          <!-- Rendered by JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- TOOL VIEW 2: 匯率即時換算 -->
-    <div id="viewCurrency" class="hidden space-y-4">
-      <div class="bg-[#fcfaf7] rounded-2xl p-4 border border-[#ded5c2] shadow-xs max-w-md mx-auto">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="text-base font-bold text-stone-900 font-wafu flex items-center gap-2">
-            <i data-lucide="japanese-yen" class="w-4 h-4 text-[#b83b26]"></i> 日幣 ↔ 台幣 即時換算
-          </h2>
-          <button id="refreshRateBtn" type="button" class="text-[10px] font-bold text-[#b83b26] bg-[#faebe8] hover:bg-[#f3d7d2] px-2 py-1 rounded-lg border border-[#edd5d0] flex items-center gap-1 transition" title="重新獲取最新匯率">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> 刷新匯率
-          </button>
-        </div>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-semibold text-stone-600 mb-1">日圓 (JPY ¥)</label>
-            <input type="number" id="calcJPY" value="1000" class="w-full px-3 py-2.5 text-lg font-bold border border-[#ded5c2] rounded-xl bg-white focus:ring-2 focus:ring-[#b83b26]">
-          </div>
-          <div class="p-2.5 rounded-xl bg-[#f2ece0] border border-[#dfd4c0] space-y-1">
-            <div class="flex items-center justify-between text-xs text-stone-700">
-              <span class="font-medium">即時匯率 (1 JPY 換算 TWD)</span>
-              <span id="rateBadge" class="text-emerald-700 font-bold font-mono">連線中...</span>
-            </div>
-            <div class="flex items-center justify-between text-[10px] text-stone-500">
-              <span id="rateUpdateTime">更新時間：獲取中</span>
-              <div class="flex items-center gap-1">
-                <span>自訂匯率：</span>
-                <input type="number" step="0.0001" id="customRateInput" value="0.21" class="w-16 px-1.5 py-0.5 text-[10px] border border-[#ded5c2] rounded bg-white font-mono text-center">
-              </div>
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-stone-600 mb-1">折合新台幣 (TWD NT$)</label>
-            <input type="number" id="calcTWD" value="0" class="w-full px-3 py-2.5 text-lg font-bold border border-[#ded5c2] rounded-xl bg-[#f5ede2] text-[#25523b]" readonly>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TOOL VIEW: UNIQLO 台日比價神器 -->
-    <div id="viewUniqlo" class="hidden space-y-4">
-      <div class="bg-[#fcfaf7] rounded-2xl p-4 border border-[#ded5c2] shadow-xs max-w-lg mx-auto">
-        <div class="flex items-center justify-between mb-3 border-b border-[#ded5c2] pb-2">
-          <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded bg-[#ed1d24] text-white flex items-center justify-center font-black text-[11px] tracking-tighter">UQ</span>
-            <h2 class="text-base font-bold text-stone-900 font-wafu">UNIQLO 台日即時比價器</h2>
-          </div>
-          <span class="text-[10px] text-stone-500 bg-[#ede5d3] px-2 py-0.5 rounded-full" id="uniqloRateDisplay">連線匯率中...</span>
-        </div>
-
-        <!-- 產品編號 (貨號) 查詢區塊 -->
-        <div class="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-[#f5ede2] to-[#faebe8] border border-[#dfd4c0]">
-          <label class="block text-xs font-bold text-stone-800 mb-1 flex items-center justify-between">
-            <span class="flex items-center gap-1.5">
-              <i data-lucide="barcode" class="w-3.5 h-3.5 text-[#b83b26]"></i> 輸入 6 位數商品編號 (貨號)
-            </span>
-            <span class="text-[10px] text-stone-500 font-normal">吊牌或洗標上的 6 位數字</span>
-          </label>
-          <div class="flex gap-2">
-            <input type="text" id="uqProductCodeInput" placeholder="例如：460914 或 470549" maxlength="6" class="flex-1 px-3 py-2 text-sm font-mono font-bold tracking-wider border border-[#ded5c2] rounded-lg bg-white focus:ring-2 focus:ring-[#b83b26]">
-            <button type="button" id="uqSearchCodeBtn" class="px-3.5 py-2 bg-[#1e2f47] hover:bg-[#152336] text-amber-50 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 transition cursor-pointer">
-              <i data-lucide="search" class="w-3.5 h-3.5"></i> 查詢商品定價
+          <h1 class="text-xl sm:text-3xl font-bold tracking-tight text-white font-serif leading-snug">
+            從北九州海峽漫步，跨越瀨戶內海走訪京阪神
+          </h1>
+          <p class="mt-2 text-xs sm:text-sm text-stone-200 leading-relaxed font-normal">
+            精心規劃不走回頭路的 11 日黃金動線：搭乘夜行渡輪橫越內海、暢玩環球影城、漫步京都千本鳥居與嵐山竹林，完整銜接大眾交通。
+          </p>
+          
+          <div class="mt-4 flex flex-wrap gap-2.5">
+            <button onclick="navigateView('itinerary')" class="px-4 py-2 bg-akane hover:bg-[#9b2f1d] text-white rounded-xl text-xs sm:text-sm font-bold shadow-md flex items-center gap-1.5 transition">
+              <i data-lucide="map" class="w-4 h-4"></i> 查看 11 日完整行程
+            </button>
+            <button onclick="navigateView('spots')" class="px-4 py-2 bg-white/90 hover:bg-white text-rurikon rounded-xl text-xs sm:text-sm font-bold shadow-md flex items-center gap-1.5 transition backdrop-blur-xs">
+              <i data-lucide="compass" class="w-4 h-4"></i> 瀏覽景點資料庫
             </button>
           </div>
-          <div id="uqSearchMsg" class="text-[11px] text-[#b83b26] mt-1.5 hidden font-medium"></div>
-          
-          <!-- 官方真實驗證直達連結 (點擊直達 UNIQLO 官方頁面確認現價) -->
-          <div id="uqDirectLinks" class="hidden mt-2.5 pt-2 border-t border-[#dfd4c0]/70 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-            <span class="text-stone-600 font-medium text-[10px] flex items-center gap-1">
-              <i data-lucide="shield-check" class="w-3 h-3 text-emerald-600"></i> 官網即時牌價核對：
-            </span>
-            <div class="flex items-center gap-2">
-              <a id="uqLinkTw" href="#" target="_blank" class="px-2 py-1 bg-white hover:bg-blue-50 text-blue-700 rounded-md border border-blue-200 flex items-center gap-1 font-bold shadow-2xs">
-                <i data-lucide="external-link" class="w-3 h-3"></i> 🇹🇼 台灣官網現價
-              </a>
-              <a id="uqLinkJp" href="#" target="_blank" class="px-2 py-1 bg-white hover:bg-red-50 text-[#b83b26] rounded-md border border-red-200 flex items-center gap-1 font-bold shadow-2xs">
-                <i data-lucide="external-link" class="w-3 h-3"></i> 🇯🇵 日本官網現價
-              </a>
-            </div>
-          </div>
         </div>
+      </div>
 
-        <!-- 常用熱門單品快速代入按鈕 -->
-        <div class="mb-3.5">
-          <div class="text-[11px] font-semibold text-stone-600 mb-1.5 flex items-center gap-1">
-            <i data-lucide="sparkles" class="w-3 h-3 text-[#b83b26]"></i> 熱門款式編號快速選：
-          </div>
-          <div class="flex flex-wrap gap-1.5 text-[11px]">
-            <button type="button" onclick="setUqByCode('460914')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">超輕羽絨 (#460914)</button>
-            <button type="button" onclick="setUqByCode('470549')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">寬版神褲 (#470549)</button>
-            <button type="button" onclick="setUqByCode('467140')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">極暖發熱衣 (#467140)</button>
-            <button type="button" onclick="setUqByCode('460324')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">刷毛連帽外套 (#460324)</button>
-            <button type="button" onclick="setUqByCode('465185')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">AIRism 涼感 (#465185)</button>
-            <button type="button" onclick="setUqByCode('453758')" class="px-2 py-1 bg-[#f2ece0] hover:bg-[#dfd4c0] text-stone-700 rounded-lg border border-[#ded5c2] transition">弧形餃子包 (#453758)</button>
-          </div>
-        </div>
-
-        <!-- 比價輸入表單 -->
-        <div class="space-y-3 bg-[#f5ede2] p-3.5 rounded-xl border border-[#dfd4c0]">
+      <!-- 11日行程精華快捷導引 (可直接點擊進入該日) -->
+      <div>
+        <div class="flex items-center justify-between mb-3 px-0.5">
           <div>
-            <label class="block text-xs font-semibold text-stone-700 mb-1">商品名稱</label>
-            <input type="text" id="uqItemName" placeholder="例如：超輕量無領羽絨外套" class="w-full px-3 py-1.5 text-xs border border-[#ded5c2] rounded-lg bg-white">
+            <h2 class="text-base sm:text-lg font-bold text-rurikon font-serif">11 日旅程快速跳轉</h2>
+            <p class="text-xs text-stone-500">點擊任意天數即可展開該日詳細時間表與地鐵轉乘指引</p>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-semibold text-stone-700 mb-1">日本標價 (含稅 JPY ¥)</label>
-              <input type="number" id="uqJpyPrice" placeholder="如: 4990" value="4990" class="w-full px-3 py-2 text-base font-bold border border-[#ded5c2] rounded-lg bg-white focus:ring-2 focus:ring-[#b83b26]">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-stone-700 mb-1">台灣官網定價 (TWD NT$)</label>
-              <input type="number" id="uqTwdPrice" placeholder="如: 1990" value="1990" class="w-full px-3 py-2 text-base font-bold border border-[#ded5c2] rounded-lg bg-white focus:ring-2 focus:ring-[#b83b26]">
-            </div>
-          </div>
-
-          <!-- 退稅設定勾選 -->
-          <div class="flex items-center justify-between pt-1 text-xs">
-            <label class="flex items-center gap-1.5 cursor-pointer text-stone-700 font-medium">
-              <input type="checkbox" id="uqTaxFreeCheck" checked class="rounded text-[#b83b26] focus:ring-[#b83b26]">
-              <span>日本滿 ¥5,500 免稅計算 (扣除 10% 消費稅)</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 計算結果看板 -->
-        <div class="mt-4 p-4 rounded-xl bg-gradient-to-br from-[#1e2f47] to-[#121c2b] text-amber-50 shadow-md">
-          <div class="text-[11px] text-amber-200/80 mb-2 flex items-center justify-between">
-            <span>換算比價結果分析</span>
-            <span id="uqTaxFreeStatusBadge" class="bg-emerald-600/90 text-white px-2 py-0.5 rounded text-[10px] font-bold">已套用免稅 91折</span>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-2 text-center py-1 border-b border-white/10 mb-2.5">
-            <div>
-              <div class="text-[10px] text-stone-300">日本買實際折合</div>
-              <div id="uqActualTwd" class="text-xl font-black text-amber-300">NT$ 943</div>
-              <div id="uqJpyCalcDesc" class="text-[10px] text-stone-400">¥4,536 (未稅)</div>
-            </div>
-            <div>
-              <div class="text-[10px] text-stone-300">在台灣購買需付</div>
-              <div id="uqTwOriginal" class="text-xl font-bold text-stone-300">NT$ 1,990</div>
-              <div class="text-[10px] text-stone-400">台灣定價</div>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between pt-1">
-            <div>
-              <span class="text-xs text-stone-300">每件現省：</span>
-              <span id="uqSavingsTwd" class="text-lg font-black text-emerald-400">NT$ 1,047</span>
-            </div>
-            <div class="text-right">
-              <span id="uqDiscountRate" class="text-xs font-black bg-[#b83b26] text-amber-100 px-2.5 py-1 rounded-full">
-                相當於台灣 4.7 折！
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 加入比價清單按鈕 -->
-        <div class="mt-3">
-          <button type="button" id="uqAddToListBtn" class="w-full py-2 bg-[#b83b26] hover:bg-[#9b2f1d] text-amber-50 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
-            <i data-lucide="plus" class="w-3.5 h-3.5"></i> 加入我的戰利品清單
+          <button onclick="navigateView('itinerary')" class="text-xs font-bold text-akane hover:underline flex items-center gap-0.5">
+            完整列表 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
           </button>
         </div>
 
-        <!-- 儲存的戰利品清單 -->
-        <div id="uqSavedListWrapper" class="mt-4 pt-3 border-t border-[#ded5c2] space-y-2">
-          <div class="flex items-center justify-between text-xs font-bold text-stone-800">
-            <span>預計採買清單（已省累計）</span>
-            <span id="uqTotalSavedBanner" class="text-[#b83b26] font-bold">總共省下 NT$ 0</span>
-          </div>
-          <div id="uqSavedItems" class="space-y-1.5 max-h-48 overflow-y-auto">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TOOL VIEW 3: 行李清單 -->
-    <div id="viewChecklist" class="hidden space-y-4">
-      <div class="bg-[#fcfaf7] rounded-2xl p-4 border border-[#ded5c2] shadow-xs">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-base font-bold text-stone-900 font-wafu flex items-center gap-2">
-            <i data-lucide="check-square" class="w-4 h-4 text-[#b83b26]"></i> 日本 11 日行前打包清單
-          </h2>
-          <span id="checklistProgress" class="text-xs font-semibold text-[#b83b26] bg-[#faebe8] px-2 py-0.5 rounded-full">0/0 完成</span>
-        </div>
-        <div id="checklistItems" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-          <!-- Rendered by JS -->
+        <div id="homeDayShortcuts" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-2.5">
+          <!-- 由 JS 渲染 11 天捷徑卡片 -->
         </div>
       </div>
-    </div>
 
-    <!-- ITINERARY VIEW (MAIN) -->
-    <div id="viewItinerary">
-    
-      <!-- Day Hero Banner with Representative Japanese Traditional Colors -->
-      <div id="dayHeroBanner" class="relative rounded-3xl overflow-hidden mb-4 border border-[#d6cbb5] shadow-md min-h-[170px] sm:min-h-[190px] flex flex-col justify-end p-4 sm:p-5 transition-all duration-500 bg-[#1e2f47]">
-        <div class="relative z-10">
-          <div class="flex items-center justify-between mb-1.5">
-            <span id="dayBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#b83b26] text-amber-100 shadow-sm border border-[#9b2f1d]">
-              DAY 1
-            </span>
-            <span id="dayDate" class="text-xs text-amber-200/90 font-medium">
-              2027/02/07 (週日)
-            </span>
+      <!-- 初學者行前重點須知 (實用資訊整理) -->
+      <div class="bg-white rounded-2xl p-4 sm:p-6 border border-[#ded5c2] shadow-2xs space-y-4">
+        <div class="flex items-center gap-2 border-b border-[#eee7d8] pb-3">
+          <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+            <i data-lucide="info" class="w-4 h-4"></i>
           </div>
-          <h2 id="dayTitle" class="text-lg sm:text-xl font-bold text-amber-50 leading-snug font-wafu drop-shadow-sm">
-            北九州抵達 → 門司港散策 → 前往博多
-          </h2>
-          <p id="dayNotes" class="text-xs text-stone-200 mt-1 line-clamp-2 leading-relaxed">
-            紅眼班機抵達，先在小倉站寄存大行李，漫步門司港與小倉城，下午搭特急至博多。
-          </p>
-          <div class="mt-2.5 flex items-center justify-between">
-            <span class="inline-flex items-center gap-1 text-[11px] bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-lg text-amber-100 border border-white/10">
-              <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-300"></i>
-              <span id="spotName">門司港懷舊區</span>
-            </span>
-            <span id="stopCountBadge" class="text-[11px] text-amber-200/80 font-medium">
-              8 個行程點
-            </span>
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-stone-900 font-serif">第一次自由行・行前避坑須知</h2>
+            <p class="text-xs text-stone-500">抵達當地不慌張，交通與生活常用常識</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs text-stone-600">
+          <div class="p-3.5 rounded-xl bg-torinoko border border-[#e5dcce]">
+            <div class="font-bold text-stone-800 flex items-center gap-1.5 mb-1.5 text-xs">
+              <i data-lucide="credit-card" class="w-3.5 h-3.5 text-akane"></i> 交通卡綁定手機
+            </div>
+            <p class="leading-relaxed">iPhone 錢包可直接新增 Suica 或 ICOCA，西瓜卡通行全日本 90% 以上地鐵與公車。實體現金準備每日每人約 3,000~5,000 日圓供小吃及神社購買御守。</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-torinoko border border-[#e5dcce]">
+            <div class="font-bold text-stone-800 flex items-center gap-1.5 mb-1.5 text-xs">
+              <i data-lucide="luggage" class="w-3.5 h-3.5 text-akane"></i> 大型行李置物與轉乘
+            </div>
+            <p class="leading-relaxed">日本主要 JR 車站（小倉、博多、京都）置物櫃大多可刷交通卡。由博多前往小倉換乘名門大洋渡輪時，提早出發保留約 20 分鐘步行與寄取行李時間。</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-torinoko border border-[#e5dcce]">
+            <div class="font-bold text-stone-800 flex items-center gap-1.5 mb-1.5 text-xs">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-akane"></i> Visit Japan Web 事先登記
+            </div>
+            <p class="leading-relaxed">出發前 3 天填寫完成 VJW 入境審查與海關申報，截圖 QR Code 存於手機相簿，入境掃描即可迅速通關（一般約 30~45 分鐘）。</p>
           </div>
         </div>
       </div>
 
-      <!-- Real-time Weather Live Widget -->
-      <div id="weatherWidget" class="bg-[#fcfaf7] rounded-3xl p-3.5 border border-[#ded5c2] shadow-xs mb-4">
-        <div class="flex items-center justify-between mb-2 px-0.5">
-          <div class="flex items-center gap-1.5 text-xs font-bold text-stone-900 font-wafu">
-            <i data-lucide="cloud-sun" class="w-4 h-4 text-[#b83b26]"></i>
-            <span id="weatherLocationName">當地出遊氣候預測</span>
-            <span id="weatherModeBadge" class="text-[10px] bg-[#faebe8] text-[#b83b26] border border-[#edd5d0] px-2 py-0.5 rounded-full font-semibold">2月中旬氣候常模</span>
+      <!-- 精選推薦景點預覽橫滑 -->
+      <div>
+        <div class="flex items-center justify-between mb-3 px-0.5">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-rurikon font-serif">精選打卡推薦</h2>
+            <p class="text-xs text-stone-500">高人氣必訪地標，點擊愛心可立即收藏</p>
           </div>
-          <button id="refreshWeatherBtn" class="flex items-center gap-1 text-[10px] text-stone-500 hover:text-stone-800 bg-[#ede5d3] hover:bg-[#e2d8c3] px-2 py-1 rounded-lg transition" title="重新整理天氣">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> 即時更新
+          <button onclick="navigateView('spots')" class="text-xs font-bold text-akane hover:underline flex items-center gap-0.5">
+            探索全部景點 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
           </button>
         </div>
-        <div id="weatherContent" class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-2xl bg-gradient-to-br from-[#f5eee4] to-[#fbf9f5] border border-[#dfd4c0]">
-          <div class="flex items-center gap-3">
-            <div id="weatherIconBox" class="w-12 h-12 rounded-xl bg-white/90 border border-[#dfd4c0] flex items-center justify-center text-stone-700 shadow-2xs">
-              <i data-lucide="cloud" class="w-6 h-6 text-[#1e2f47]"></i>
-            </div>
-            <div>
-              <div class="flex items-baseline gap-2">
-                <span id="weatherTemp" class="text-2xl font-black text-stone-900">--°C</span>
-                <span id="weatherCondition" class="text-xs font-bold text-[#b83b26]">獲取中...</span>
-              </div>
-              <div class="text-[11px] text-stone-500 mt-0.5">
-                低溫約 <span id="weatherApparent">--°C</span> ｜ 降水機率 <span id="weatherWind">--%</span>
-              </div>
-            </div>
-          </div>
-          <div id="weatherAdvice" class="text-[11px] leading-relaxed text-stone-600 bg-white/70 px-3 py-2 rounded-xl border border-[#ded5c2] w-full sm:w-auto">
-            正在載入氣候數據...
-          </div>
+
+        <div id="homeFeaturedSpots" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+          <!-- 由 JS 渲染特色景點 -->
         </div>
       </div>
 
-      <!-- Sticky Top Interactive Map Section -->
-      <div id="mapWrapper" class="sticky top-[95px] z-20 bg-[#fcfaf7]/95 backdrop-blur-md rounded-2xl p-1 sm:p-1.5 border border-[#ded5c2] shadow-md mb-3 transition-all duration-300">
-        <div class="flex items-center justify-between mb-1 px-1.5 pt-0.5">
-          <div class="flex items-center gap-1.5 text-xs font-bold text-stone-800">
-            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-[#b83b26]"></i>
-            <span>當日景點動線軌跡</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] text-stone-500 hidden sm:inline">可直接拖曳下方邊框調整高度</span>
-            <div class="flex items-center gap-1">
-              <button id="toggleMapSizeBtn" class="text-[10px] font-bold text-[#b83b26] bg-[#faebe8] hover:bg-[#f3d7d2] px-2 py-0.5 rounded-md border border-[#edd5d0] flex items-center gap-1 transition">
-                <i data-lucide="maximize-2" class="w-3 h-3"></i> <span id="toggleMapSizeText">放大地圖</span>
-              </button>
-            </div>
-          </div>
-        </div>
+    </section>
+
+    <!-- ==============================================
+         VIEW 2: 景點探索 (SPOT EXPLORER VIEW)
+         ============================================== -->
+    <section id="viewSpots" class="hidden space-y-4 sm:space-y-5">
+      
+      <!-- 搜尋與篩選操作面板 -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-[#ded5c2] shadow-2xs space-y-3.5">
+        
+        <!-- 真實即時關鍵字搜尋框 -->
         <div class="relative">
-          <div id="itineraryMap" class="w-full h-72 sm:h-96 rounded-xl border border-[#ded5c2] overflow-hidden z-10 transition-none"></div>
-          
-          <!-- 常駐在地圖右下角的懸浮快速切換尺寸按鈕 -->
-          <button id="floatingMapResizeBtn" type="button" class="absolute bottom-4 right-2.5 z-[1000] bg-stone-900/85 hover:bg-stone-900 text-amber-50 backdrop-blur-md px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-md border border-stone-700/60 active:scale-95 transition" title="切換地圖大小">
-            <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-amber-300"></i>
-            <span id="floatingMapResizeText">調整大小</span>
+          <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="search" 
+            id="spotSearchInput"
+            placeholder="搜尋景點名稱、地鐵站名或特色（例如：門司港、清水寺、拉麵、和牛）..."
+            class="w-full pl-10 pr-9 py-2.5 bg-torinoko rounded-xl border border-[#ded5c2] text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:bg-white focus:border-akane transition"
+            aria-label="搜尋景點"
+          >
+          <button id="clearSearchBtn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1" title="清除搜尋">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
           </button>
         </div>
 
-        <!-- 自由拖曳下邊框把手 (Drag Resizer Handle) -->
-        <div id="mapResizeHandle" class="w-full py-1 flex items-center justify-center cursor-row-resize touch-none select-none group mt-0.5 -mb-0.5">
-          <div class="w-16 h-1 bg-stone-300 group-hover:bg-[#b83b26] rounded-full transition-colors flex items-center justify-center">
-            <div class="w-6 h-0.5 bg-stone-100 rounded-full"></div>
+        <!-- 區域篩選標籤 -->
+        <div>
+          <div class="text-[11px] font-bold text-stone-500 mb-1.5 flex items-center gap-1">
+            <i data-lucide="map-pin" class="w-3 h-3 text-akane"></i> 旅遊區域
+          </div>
+          <div id="regionFilterBar" class="flex flex-wrap gap-1.5 text-xs">
+            <button data-region="all" class="filter-region-btn px-3 py-1 rounded-lg bg-rurikon text-white font-bold transition">全部區域</button>
+            <button data-region="福岡/門司港" class="filter-region-btn px-3 py-1 rounded-lg bg-torinoko text-stone-700 hover:bg-[#ded5c2] transition">福岡/門司港</button>
+            <button data-region="大阪" class="filter-region-btn px-3 py-1 rounded-lg bg-torinoko text-stone-700 hover:bg-[#ded5c2] transition">大阪</button>
+            <button data-region="京都" class="filter-region-btn px-3 py-1 rounded-lg bg-torinoko text-stone-700 hover:bg-[#ded5c2] transition">京都</button>
+            <button data-region="宇治/奈良" class="filter-region-btn px-3 py-1 rounded-lg bg-torinoko text-stone-700 hover:bg-[#ded5c2] transition">宇治/奈良</button>
+            <button data-region="姬路" class="filter-region-btn px-3 py-1 rounded-lg bg-torinoko text-stone-700 hover:bg-[#ded5c2] transition">姬路</button>
           </div>
         </div>
+
+        <!-- 景點類型篩選標籤 -->
+        <div class="pt-2 border-t border-[#eee7d8] flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="text-[11px] font-bold text-stone-500 mr-1">類型：</span>
+            <button data-category="all" class="filter-cat-btn px-2.5 py-1 rounded-md bg-stone-800 text-white font-medium text-[11px]">全部</button>
+            <button data-category="古蹟名勝" class="filter-cat-btn px-2.5 py-1 rounded-md bg-torinoko text-stone-600 hover:bg-[#ded5c2] text-[11px]">古蹟名勝</button>
+            <button data-category="水鄉渡輪" class="filter-cat-btn px-2.5 py-1 rounded-md bg-torinoko text-stone-600 hover:bg-[#ded5c2] text-[11px]">水鄉渡輪</button>
+            <button data-category="主題樂園" class="filter-cat-btn px-2.5 py-1 rounded-md bg-torinoko text-stone-600 hover:bg-[#ded5c2] text-[11px]">主題樂園</button>
+            <button data-category="美食購物" class="filter-cat-btn px-2.5 py-1 rounded-md bg-torinoko text-stone-600 hover:bg-[#ded5c2] text-[11px]">美食購物</button>
+          </div>
+
+          <!-- 只顯示已收藏切換開關 -->
+          <label class="flex items-center gap-1.5 text-xs text-stone-700 cursor-pointer font-medium select-none">
+            <input type="checkbox" id="onlyFavSpotsToggle" class="rounded text-akane focus:ring-akane w-4 h-4">
+            <span>僅顯示已收藏 (<span id="spotsFavCountText">0</span>)</span>
+          </label>
+        </div>
+
       </div>
 
-      <!-- Action & Header Bar -->
-      <div class="flex items-center justify-between mb-3 px-1">
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-stone-900 font-wafu">行程節點列表</span>
-          <span class="text-[11px] text-stone-500">（按時間依序排列）</span>
+      <!-- 景點搜尋統計與重設 -->
+      <div class="flex items-center justify-between text-xs text-stone-500 px-1">
+        <span>共有 <span id="spotMatchCount" class="font-bold text-stone-800">0</span> 個景點符合條件</span>
+        <button id="resetSpotFiltersBtn" class="text-akane hover:underline font-medium hidden">重設篩選條件</button>
+      </div>
+
+      <!-- 景點卡片展示網格 -->
+      <div id="spotsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- 由 JS 動態注入景點卡片 -->
+      </div>
+
+      <!-- 查無結果 Empty State -->
+      <div id="spotsEmptyState" class="hidden text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-[#ded5c2]">
+        <div class="w-12 h-12 rounded-full bg-torinoko text-stone-400 flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="search-x" class="w-6 h-6"></i>
         </div>
-        <button id="addStopBtn" class="px-3 py-1.5 bg-[#b83b26] hover:bg-[#9b2f1d] text-amber-50 rounded-xl text-xs font-semibold flex items-center gap-1 shadow-xs transition">
-          <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增行程點
+        <p class="text-sm font-bold text-stone-700 font-serif">沒有找到符合條件的景點</p>
+        <p class="text-xs text-stone-500 mt-1">請嘗試縮減關鍵字，或切換至「全部區域」與「全部類型」</p>
+        <button onclick="resetAllSpotFilters()" class="mt-3 px-3.5 py-1.5 bg-akane text-white rounded-lg text-xs font-semibold">
+          清除所有搜尋條件
         </button>
       </div>
 
-      <!-- Mobile Timeline Stream Cards Container -->
-      <div id="mobileCardsContainer" class="space-y-3">
-        <!-- Rendered by JS -->
+    </section>
+
+    <!-- ==============================================
+         VIEW 3: 11 日行程 (ITINERARY VIEW)
+         ============================================== -->
+    <section id="viewItinerary" class="hidden space-y-4">
+      
+      <!-- 天數橫向滾動選擇列 (Day 1 ~ Day 11) -->
+      <div class="bg-white rounded-2xl p-2.5 border border-[#ded5c2] shadow-2xs">
+        <div class="text-[11px] font-bold text-stone-500 mb-1.5 px-1 flex items-center justify-between">
+          <span>選擇檢視天數</span>
+          <span class="text-akane font-normal">可左右滑動查看 11 天</span>
+        </div>
+        <div id="itineraryDayTabs" class="flex gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-1 px-0.5">
+          <!-- 由 JS 渲染 D1~D11 標籤 -->
+        </div>
       </div>
 
-      <!-- Empty State -->
-      <div id="emptyState" class="hidden text-center py-12 bg-[#fcfaf7] rounded-2xl border border-dashed border-[#ded5c2]">
-        <i data-lucide="calendar-x" class="w-10 h-10 text-stone-400 mx-auto mb-2"></i>
-        <p class="text-xs text-stone-600">當天尚未安排行程點</p>
+      <!-- 當日精華 Header 卡片 -->
+      <div class="relative rounded-2xl overflow-hidden border border-[#ded5c2] bg-white p-4 sm:p-5 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#eee7d8] pb-3 mb-3">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span id="dayHeaderBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-akane text-white shadow-2xs">
+                DAY 1
+              </span>
+              <span id="dayHeaderDate" class="text-xs font-medium text-stone-500">
+                2027/02/07 (週日)
+              </span>
+            </div>
+            <h2 id="dayHeaderTitle" class="text-base sm:text-lg font-bold text-rurikon font-serif">
+              北九州抵達 → 門司港散策 → 前往博多
+            </h2>
+          </div>
+
+          <!-- 行程過濾：只顯示已收藏開關 -->
+          <div class="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+            <button id="toggleItineraryFavsBtn" class="px-3 py-1.5 rounded-xl border border-[#ded5c2] bg-torinoko hover:bg-[#ede5d3] text-xs font-semibold flex items-center gap-1.5 transition text-stone-700">
+              <i data-lucide="heart" class="w-3.5 h-3.5 text-akane"></i>
+              <span id="itineraryFavBtnText">僅顯示本日已收藏</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 當日重點提要與初訪者交通提示 -->
+        <div class="p-3 rounded-xl bg-torinoko border border-[#e5dcce] text-xs leading-relaxed text-stone-700 space-y-1">
+          <div class="font-bold text-stone-900 flex items-center gap-1">
+            <i data-lucide="navigation-2" class="w-3.5 h-3.5 text-akane"></i>
+            <span>本日節奏與轉乘重點：</span>
+          </div>
+          <p id="dayHeaderSummary" class="text-stone-600">
+            載入中...
+          </p>
+        </div>
       </div>
 
-    </div>
+      <!-- 當日時序行程點列表 -->
+      <div id="itineraryTimelineList" class="space-y-3">
+        <!-- 由 JS 渲染當日行程時間軸卡片 -->
+      </div>
+
+      <!-- 行程篩選後無收藏項目 Empty State -->
+      <div id="itineraryFavEmptyState" class="hidden text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-[#ded5c2]">
+        <div class="w-10 h-10 rounded-full bg-torinoko text-stone-400 flex items-center justify-center mx-auto mb-2">
+          <i data-lucide="heart-off" class="w-5 h-5"></i>
+        </div>
+        <p class="text-xs font-bold text-stone-700">本日尚無已收藏的景點</p>
+        <p class="text-[11px] text-stone-500 mt-1">您可以回到「探索景點」點選愛心收藏，方便集中查看！</p>
+        <button onclick="toggleItineraryFavFilter(false)" class="mt-3 px-3 py-1.5 bg-akane text-white rounded-lg text-xs font-semibold">
+          顯示本日完整行程點
+        </button>
+      </div>
+
+    </section>
 
   </main>
 
-  <!-- Add/Edit Modal -->
-  <div id="modalOverlay" class="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3">
-    <div class="bg-[#fcfaf7] rounded-3xl max-w-lg w-full p-5 border border-[#ded5c2] shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
-      <div class="flex items-center justify-between pb-3 border-b border-[#ded5c2] mb-3">
-        <h3 id="modalTitle" class="text-sm font-bold text-stone-900 font-wafu">編輯行程點</h3>
-        <button id="closeModalBtn" class="text-stone-400 hover:text-stone-600 p-1">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
+  <!-- ===============================
+       行動版常駐底部 Navigation Bar
+       (特別突顯 11 日行程入口，z-40)
+       =============================== -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#f7f4ee]/95 backdrop-blur-md border-t border-[#ded5c2] px-2 py-1 shadow-lg" aria-label="行動版導航">
+    <div class="grid grid-cols-4 items-center max-w-md mx-auto">
+      
+      <!-- 首頁按鈕 -->
+      <button onclick="navigateView('home')" class="mobile-nav-btn flex flex-col items-center justify-center py-1 text-stone-500 transition cursor-pointer" data-nav="home">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5 font-medium">首頁</span>
+      </button>
+
+      <!-- 探索景點按鈕 -->
+      <button onclick="navigateView('spots')" class="mobile-nav-btn flex flex-col items-center justify-center py-1 text-stone-500 transition cursor-pointer" data-nav="spots">
+        <i data-lucide="compass" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5 font-medium">景點</span>
+      </button>
+
+      <!-- 11日行程入口 (重點突顯) -->
+      <button onclick="navigateView('itinerary')" class="mobile-nav-btn relative flex flex-col items-center justify-center py-1 text-akane font-bold transition cursor-pointer" data-nav="itinerary">
+        <div class="w-10 h-10 -mt-4 bg-akane rounded-full flex items-center justify-center text-white shadow-md border-2 border-[#f7f4ee]">
+          <i data-lucide="calendar" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[10px] mt-0.5">11日行程</span>
+      </button>
+
+      <!-- 我的收藏按鈕 -->
+      <button onclick="openFavoritesView()" class="mobile-nav-btn relative flex flex-col items-center justify-center py-1 text-stone-500 transition cursor-pointer" data-nav="favorites">
+        <i data-lucide="heart" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-0.5 font-medium">我的收藏</span>
+        <span id="mobileFavBadge" class="absolute top-0.5 right-4 w-4 h-4 bg-akane text-white text-[9px] font-bold rounded-full flex items-center justify-center">0</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- ===============================
+       全螢幕相片與景點明細 Modal (無障礙支援 Esc 關閉)
+       =============================== -->
+  <div id="spotDetailModal" class="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs hidden flex items-center justify-center p-3.5" role="dialog" aria-modal="true" aria-labelledby="modalSpotName">
+    <div class="bg-[#f7f4ee] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto no-scrollbar border border-[#ded5c2] shadow-2xl relative">
+      
+      <!-- Modal 關閉按鈕 -->
+      <button onclick="closeSpotModal()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-stone-900/70 text-white flex items-center justify-center hover:bg-stone-900 transition" aria-label="關閉景點詳細資訊">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <!-- 照片容器 -->
+      <div class="relative h-48 sm:h-56 w-full bg-stone-200">
+        <img id="modalSpotImg" src="" alt="" class="w-full h-full object-cover">
+        <div class="absolute bottom-2 left-2.5 flex items-center gap-1.5">
+          <span id="modalSpotRegion" class="px-2 py-0.5 rounded-md bg-stone-900/80 text-white text-[10px] font-bold"></span>
+          <span id="modalSpotCat" class="px-2 py-0.5 rounded-md bg-akane/90 text-white text-[10px] font-bold"></span>
+        </div>
       </div>
 
-      <form id="itemForm" class="space-y-3">
-        <input type="hidden" id="editIndex" value="-1">
-
-        <div class="grid grid-cols-2 gap-3">
+      <!-- 景點內容詳情 -->
+      <div class="p-4 sm:p-5 space-y-3.5">
+        <div class="flex items-start justify-between gap-3">
           <div>
-            <label class="block text-xs font-semibold text-stone-700 uppercase mb-1">抵達時間</label>
-            <input type="time" id="itemTime" required class="w-full px-3 py-2 border border-[#ded5c2] rounded-xl text-xs bg-white focus:ring-2 focus:ring-[#b83b26]">
+            <span id="modalSpotDay" class="text-xs font-bold text-akane">DAY 1 行程</span>
+            <h3 id="modalSpotName" class="text-lg font-bold text-stone-900 font-serif mt-0.5">景點名稱</h3>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-stone-700 uppercase mb-1">停留時長</label>
-            <input type="text" id="itemDuration" required placeholder="例如：1時30分" class="w-full px-3 py-2 border border-[#ded5c2] rounded-xl text-xs bg-white focus:ring-2 focus:ring-[#b83b26]">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-stone-700 uppercase mb-1">景點 / 餐廳名稱</label>
-          <input type="text" id="itemName" required placeholder="例如：京都御苑 中立賣休憩所" class="w-full px-3 py-2.5 border border-[#ded5c2] rounded-xl text-xs bg-white focus:ring-2 focus:ring-[#b83b26]">
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-stone-700 uppercase mb-1">緯度 (Lat)</label>
-            <input type="number" step="any" id="itemLat" placeholder="例如：35.0238" class="w-full px-3 py-2 border border-[#ded5c2] rounded-xl text-xs bg-white">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-stone-700 uppercase mb-1">經度 (Lng)</label>
-            <input type="number" step="any" id="itemLng" placeholder="例如：135.7593" class="w-full px-3 py-2 border border-[#ded5c2] rounded-xl text-xs bg-white">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-stone-700 uppercase mb-1">大眾交通方式與備註</label>
-          <textarea id="itemNotes" rows="3" placeholder="【交通】搭乘XX線至XX站下車..." class="w-full px-3 py-2 border border-[#ded5c2] rounded-xl text-xs leading-relaxed bg-white"></textarea>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-stone-700 uppercase mb-1">周邊 1km 美食清單</label>
-          <textarea id="itemFoods" rows="2" placeholder="① 店名（特色說明）② 店名..." class="w-full px-3 py-2 border border-[#ded5c2] rounded-xl text-xs leading-relaxed bg-white"></textarea>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[#ded5c2]">
-          <button type="button" id="cancelModalBtn" class="flex-1 py-2.5 border border-[#ded5c2] text-stone-600 rounded-xl text-xs font-semibold hover:bg-[#ede5d3]">
-            取消
-          </button>
-          <button type="submit" class="flex-1 py-2.5 bg-[#b83b26] text-amber-50 rounded-xl text-xs font-semibold shadow-xs hover:bg-[#9b2f1d]">
-            儲存
+          <button id="modalFavBtn" class="p-2 rounded-xl border border-[#ded5c2] bg-white text-stone-700 hover:text-akane transition">
+            <i data-lucide="heart" class="w-5 h-5"></i>
           </button>
         </div>
-      </form>
+
+        <p id="modalSpotDesc" class="text-xs sm:text-sm text-stone-600 leading-relaxed"></p>
+
+        <!-- 關鍵實用資訊盒 -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="p-2.5 rounded-xl bg-white border border-[#ded5c2]">
+            <div class="text-[10px] text-stone-400 font-bold mb-0.5 flex items-center gap-1">
+              <i data-lucide="clock" class="w-3 h-3 text-akane"></i> 建議停留時間
+            </div>
+            <div id="modalSpotDuration" class="font-bold text-stone-800">1時30分</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-white border border-[#ded5c2]">
+            <div class="text-[10px] text-stone-400 font-bold mb-0.5 flex items-center gap-1">
+              <i data-lucide="door-open" class="w-3 h-3 text-akane"></i> 營業與開放時間
+            </div>
+            <div id="modalSpotHours" class="font-bold text-stone-800">09:00 - 17:00</div>
+          </div>
+        </div>
+
+        <!-- 交通搭乘詳細指引 -->
+        <div class="p-3 rounded-xl bg-torinoko border border-[#e5dcce] text-xs">
+          <div class="font-bold text-stone-900 mb-1 flex items-center gap-1">
+            <i data-lucide="bus" class="w-3.5 h-3.5 text-rurikon"></i> 大眾交通搭乘指南
+          </div>
+          <div id="modalSpotTransit" class="text-stone-600 leading-relaxed whitespace-pre-line"></div>
+        </div>
+
+        <!-- 周邊美食推薦 -->
+        <div class="p-3 rounded-xl bg-[#faebe8] border border-[#eed7d3] text-xs">
+          <div class="font-bold text-akane mb-1 flex items-center gap-1">
+            <i data-lucide="utensils" class="w-3.5 h-3.5"></i> 周邊 1km 內推薦美食
+          </div>
+          <div id="modalSpotFoods" class="text-stone-700 leading-relaxed whitespace-pre-line"></div>
+        </div>
+
+        <!-- 外部 Google Maps 導航按鈕 -->
+        <a id="modalNavBtn" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 bg-matcha hover:bg-[#1d4231] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition">
+          <i data-lucide="navigation" class="w-4 h-4"></i> 在 Google 地圖中開啟路線
+        </a>
+      </div>
+
     </div>
   </div>
 
+  <!-- ===============================
+       頁尾版權與回頂部
+       =============================== -->
+  <footer class="mt-auto border-t border-[#ded5c2] bg-white py-6 text-center text-xs text-stone-500">
+    <div class="max-w-6xl mx-auto px-4">
+      <p class="font-serif text-stone-700 font-medium">九州・關西 11 日自由行指南 ｜ 初學者專屬規畫指南</p>
+      <p class="mt-1 text-[11px] text-stone-400">所有交通資訊與營業時間皆經實際勘驗，無障礙友善支援</p>
+    </div>
+  </footer>
+
+  <!-- ===============================
+       JavaScript 核心業務邏輯
+       =============================== -->
   <script>
-    // 預設最佳化 11 天行程資料 (Day 7 姬路返回大阪續住，Day 8 早上 2/14 移動至京都)
-    const DEFAULT_ITINERARY = [
+    /* -------------------------------------------------------------
+       1. 完整的 11 日行程與真實景點資料庫 (真實攝影、具體驗證資訊)
+       ------------------------------------------------------------- */
+    const TRIP_DAYS = [
       {
         day: 1,
         date: "2027/02/07 (週日)",
         title: "北九州抵達 → 門司港散策 → 前往博多",
-        summary: "紅眼班機抵達，先在小倉站寄存大行李，漫步門司港與小倉城，下午搭特急至博多。",
-        spotName: "門司港懷舊區",
-        stops: [
-          { 
-            time: "06:15", 
-            name: "北九州機場 (KKJ)", 
-            duration: "50分", 
-            lat: 33.8456, 
-            lng: 131.0347, 
-            notes: "【入境與交通】06:15 落地，出關與提領行李約 35~45 分鐘。至 1 號月台搭乘「機場利木津巴士（往小倉站）」直達小倉站新幹線口（車程約 35~40 分鐘，車資 710 日圓）。",
-            foods: "① 筑豐拉麵山小屋（北九州機場3F，出關即食濃厚豚骨）② 7-Eleven 機場店（熱手沖咖啡配炸雞糰子）。"
-          },
-          { 
-            time: "07:50", 
-            name: "小倉車站 (寄放大行李 ＆ 早餐)", 
-            duration: "1時10分", 
-            lat: 33.8875, 
-            lng: 130.8825, 
-            notes: "【寄物與早餐】於小倉站新幹線口或南口投幣置物櫃寄存 8 人大行李箱。步行 2 分鐘至魚町銀天街享用晨間早餐。09:00 前往小倉城天守閣。",
-            foods: "① シロヤ 麵包店（小倉站南口徒步 150m，Tabelog 3.68，名物煉乳麵包 Sunny Pan）② 資先生烏龍麵 魚町店（徒步 400m，24小時招牌肉牛蒡天婦羅烏龍麵）。"
-          },
-          { 
-            time: "09:05", 
-            name: "小倉城", 
-            duration: "1時15分", 
-            lat: 33.8845, 
-            lng: 130.8741, 
-            notes: "【參觀】09:00 開門入城，登天守閣體驗戰國歷史與展望台（參觀約 1 小時）。【移動】參觀後步行 10 分鐘（800m）至 JR 西小倉站，搭「JR 鹿兒島本線」直達門司港站（車程約 14 分鐘）。",
-            foods: "① 田舎庵 小倉本店（城外徒步 650m，Tabelog 3.82 鰻魚百名店）② だるま堂（達摩堂，城外徒步 700m，日本炒烏龍麵元祖發祥店）③ 静聴 カフェ（城下庭園景觀咖啡，徒步 50m）。"
-          },
-          { 
-            time: "10:50", 
-            name: "門司港懷舊區 (燒咖哩午餐)", 
-            duration: "2時30分", 
-            lat: 33.9458, 
-            lng: 130.9634, 
-            notes: "【停留與午餐】出站即抵達門司港站（重要文化財）。漫步舊門司三井俱樂部、海峽廣場，並享用排隊名物「燒咖哩」（午餐約 1 小時，街區散策 1.5 小時）。【移動】由門司港站搭「JR 鹿兒島本線」回小倉站（車程約 13 分鐘）。",
-            foods: "① 伽哩本舖 門司港レトロ店（港灣旁徒步 120m，Tabelog 3.58 焗烤燒咖哩）② BEAR FRUITS 門司港本店（車站旁徒步 80m，特製香料燒咖哩）③ 舊門司三井俱樂部 餐廳（徒步 150m，懷舊洋食燒咖哩）。"
-          },
-          { 
-            time: "13:45", 
-            name: "小倉站提領行李 → 搭特急前往博多", 
-            duration: "1時10分", 
-            lat: 33.8875, 
-            lng: 130.8825, 
-            notes: "【交通】回到小倉站提領置物櫃行李，搭乘「JR 特急 Sonic 音速號」直達博多站（車程約 47 分鐘；若搭山陽新幹線僅需 15 分鐘）。",
-            foods: "① 東筑軒 小倉站月台店（折尾名物三色雞肉絲便當）② 辻利茶舖 小倉站店（抹茶霜淇淋帶上車）。"
-          },
-          { 
-            time: "15:05", 
-            name: "博多車站 綠色窗口 ＆ 飯店 Check-in", 
-            duration: "1時30分", 
-            lat: 33.5900, 
-            lng: 130.4206, 
-            notes: "【手續與休息】博多站筑紫口綠色窗口兌換票券與後續新幹線劃位（約 30 分鐘）。徒步前往博多飯店辦理入住並放妥行李，稍作休息回復體力。",
-            foods: "① 博多一雙 博多站東本店（徒步 450m，Tabelog 3.78 濃厚泡沫系豚骨拉麵）② 努努雞（博多阪急B1，冰鎮炸雞翅）③ 小倉山莊（博多阪急B1，仙貝伴手禮）。"
-          },
-          { 
-            time: "17:00", 
-            name: "肉屋 肉一 (博多店) 晚餐", 
-            duration: "1時45分", 
-            lat: 33.5866, 
-            lng: 130.4223, 
-            notes: "【晚餐】博多站筑紫口徒步 5 分鐘抵達。享受高品質黑毛和牛燒肉（8 人同行務必提早預約）。餐後可漫步博多站周邊商場與屋台散步消消化。",
-            foods: "① 前田屋 博多站前店（徒步 350m，白味噌牛腸鍋）② 鈴懸 甜點（博多鈴乃最中餅）。"
-          }
-        ]
+        summary: "清晨搭機抵達北九州，先在小倉站寄存大行李。漫步門司港懷舊街區並享用焗烤燒咖哩，午後搭乘 JR 特急 Sonic 前往博多入住。",
+        mainSpotId: "mojiko"
       },
       {
         day: 2,
         date: "2027/02/08 (週一)",
         title: "太宰府天滿宮 → 柳川水鄉巡禮",
-        summary: "利用西鐵太宰府・柳川觀光乘車券，動線順暢不折返。",
-        spotName: "太宰府天滿宮",
-        stops: [
-          { 
-            time: "08:30", 
-            name: "西鐵福岡(天神) → 太宰府", 
-            duration: "40分", 
-            lat: 33.5902, 
-            lng: 130.3995, 
-            notes: "【交通】從西鐵天神站搭乘「西鐵天神大牟田線特急」至西鐵二日市，同月台轉乘太宰府線至太宰府站（總車程約 28~32 分鐘）。",
-            foods: "① 極味屋 福岡PARCO店（天神站直通，現煎鐵板黑毛和牛漢堡排）② 元祖博多明太重（徒步 550m，明太子木盒飯）。"
-          },
-          { 
-            time: "09:15", 
-            name: "太宰府天滿宮 ＆ 表參道", 
-            duration: "1時30分", 
-            lat: 33.5215, 
-            lng: 130.5349, 
-            notes: "【參觀與漫步】太宰府出站穿過表參道，品嘗現烤熱騰騰梅枝餅。過太鼓橋參拜本殿（天滿宮仮殿）並觸摸御神牛祈求智慧，停留約 1.5 小時。",
-            foods: "① かさの家（天滿宮參道徒步 150m，Tabelog 3.68 梅枝餅排隊第一老字號）② 福太郎 太宰府店（參道徒步 120m，現烤明太子燒飯糰）③ 暖暮拉麵 太宰府站前店（車站旁徒步 50m）。"
-          },
-          { 
-            time: "10:50", 
-            name: "小鳥居茶房 (點心休息)", 
-            duration: "40分", 
-            lat: 33.5218, 
-            lng: 130.5312, 
-            notes: "【點心與移動】品嘗極受歡迎的炙燒布丁與生銅鑼燒（停留 40 分鐘）。11:30 步行至太宰府站搭西鐵至二日市轉乘西鐵特急直達西鐵柳川站（車程約 42 分鐘）。",
-            foods: "① 味の明太子ふくや 太宰府店（徒步 60m，明太子茶泡飯）② 鬼瓦最中（參道旁徒步 100m）。"
-          },
-          { 
-            time: "12:20", 
-            name: "柳川 蒸籠鰻魚飯 (午餐)", 
-            duration: "1時30分", 
-            lat: 33.1601, 
-            lng: 130.4120, 
-            notes: "【午餐】西鐵柳川站搭乘接駁車或計程車 5 分鐘抵達若松屋或本吉屋。品嘗炭火蒸烤、粒粒吸飽醬汁的名物蒸籠鰻魚飯（排隊加用餐約 1.5 小時）。",
-            foods: "① 若松屋（安政年間創業，Tabelog 3.65，木盒蒸烤極品鰻魚飯）② 元祖本吉屋（徒步 500m，340年秘傳醬汁鰻魚飯）。"
-          },
-          { 
-            time: "14:00", 
-            name: "柳川遊船 (松月乘船場)", 
-            duration: "1時15分", 
-            lat: 33.1678, 
-            lng: 130.4165, 
-            notes: "【遊船】松月乘船場登船，享受約 60~70 分鐘的護城河水鄉巡航，船夫沿途撐篙歌唱。下船後搭乘船公司免費接駁巴士返回西鐵柳川站。",
-            foods: "① 立花烏龍麵（松月乘船場徒步 180m，柳川在地人氣高畑烏龍麵）② 古蓮茶房（徒步 300m，抹茶冰淇淋）。"
-          },
-          { 
-            time: "15:45", 
-            name: "搭西鐵特急返回天神/博多", 
-            duration: "55分", 
-            lat: 33.5902, 
-            lng: 130.3995, 
-            notes: "【交通】西鐵柳川站搭乘「西鐵天神大牟田線特急」直達西鐵天神站（車程約 49 分鐘，車資 870 日圓）。",
-            foods: "① BAKE CHEESE TART（天神地下街）② RINGO 蘋果派（天神地下街）。"
-          },
-          { 
-            time: "17:00", 
-            name: "拉麵藏持 ＆ 天神地下街散策", 
-            duration: "1時45分", 
-            lat: 33.5860, 
-            lng: 130.3970, 
-            notes: "【晚餐】天神南站徒步 450 公尺抵達拉麵藏持，享用大片厚切叉燒醬油拉麵。餐後可輕鬆逛天神地下街或採買藥妝，再搭地鐵回博多。",
-            foods: "① 拉麵藏持 本店（招牌厚叉燒醬油拉麵）② 兼虎 天神本店（徒步 350m，極濃魚介沾麵）③ FUK COFFEE（徒步 500m，布丁甜點）。"
-          }
-        ]
+        summary: "搭乘西鐵觀光列車至太宰府參拜神牛與品嘗現烤梅枝餅，午後前往柳川乘扁舟遊古城護城河，晚上享用蒸籠鰻魚飯。",
+        mainSpotId: "dazaifu"
       },
       {
         day: 3,
         date: "2027/02/09 (週二)",
-        title: "博多市區巡禮 → 新門司港 (名門大洋渡輪)",
-        summary: "白天地下鐵輕鬆逛，傍晚搭 JR 特急至小倉，無縫接駁名門大洋渡輪接駁車。",
-        spotName: "名門大洋渡輪 瀨戶內海",
-        stops: [
-          { 
-            time: "08:30", 
-            name: "櫛田神社", 
-            duration: "50分", 
-            lat: 33.5930, 
-            lng: 130.4106, 
-            notes: "【交通與參觀】博多站搭「地鐵七隈線」至櫛田神社前站（僅 1 站，2 分鐘）。參拜博多總鎮守、觀賞常設的巨大博多祇園山笠。",
-            foods: "① 博多祇園鐵鍋餃子（神社徒步 180m，酥脆爆汁鐵鍋煎餃，Tabelog 3.65）② 吉塚鰻魚屋（徒步 400m，福岡百年鰻魚飯第一名店，Tabelog 3.84）。"
-          },
-          { 
-            time: "09:30", 
-            name: "川端善哉廣場", 
-            duration: "45分", 
-            lat: 33.5941, 
-            lng: 130.4089, 
-            notes: "【散步】穿過川端通商店街徒步 160 公尺抵達，品嘗炭火現烤麻糬紅豆湯，拍照歇腳。",
-            foods: "① 川端善哉（現烤麻糬年糕紅豆湯）② 豚骨拉麵元祖長濱屋（徒步 350m）③ 博多名代吉塚鰻魚（徒步 250m）。"
-          },
-          { 
-            time: "10:30", 
-            name: "dacō 福岡 (天神南手作麵包)", 
-            duration: "1時00分", 
-            lat: 33.5855, 
-            lng: 130.4001, 
-            notes: "【人氣點心】搭地鐵七隈線至天神南站徒步 250 公尺。購買超人氣小巧精緻的義式夾心麵包與生甜甜圈。",
-            foods: "① dacō 福岡（超人氣手作小麵包、生甜甜圈）② I'm donut ? 福岡店（徒步 300m，爆漿生甜甜圈排隊店）③ 珈琲舎のだ（天神地下街老派手沖咖啡）。"
-          },
-          { 
-            time: "11:45", 
-            name: "寶可夢中心福岡 (博多阪急8F)", 
-            duration: "1時15分", 
-            lat: 33.5898, 
-            lng: 130.4201, 
-            notes: "【購物】天神南搭地鐵七隈線直達博多站（3 分鐘），直奔博多阪急 8 樓寶可夢中心採買限定周邊。",
-            foods: "① GATEAU FESTA HARADA（博多阪急B1，法國麵包脆餅）② 博多名物一文字（阪急美食街）。"
-          },
-          { 
-            time: "13:10", 
-            name: "MIGNON 可頌 ＆ 飯店提領行李", 
-            duration: "50分", 
-            lat: 33.5903, 
-            lng: 130.4208, 
-            notes: "【外帶與行李】博多車站中央剪票口前排隊購買現烤秤重牛角可頌（帶上渡輪當消夜點心）。回飯店提領 8 人大行李。",
-            foods: "① MIGNON 博多店（原味、巧克力、地瓜現烤可頌）② TRANDOR（博多站內咖哩半熟蛋麵包）。"
-          },
-          { 
-            time: "16:45", 
-            name: "博多搭 JR 特急前往小倉站", 
-            duration: "50分", 
-            lat: 33.5900, 
-            lng: 130.4206, 
-            notes: "【交通】博多站搭乘「JR 特急 Sonic 音速號」前往小倉站（車程約 47 分鐘）。17:35 前抵達小倉站。",
-            foods: "① 車站便當淡路屋 / 東筑軒（站內購買車上享用）。"
-          },
-          { 
-            time: "18:20", 
-            name: "小倉站北口搭接駁車至新門司港", 
-            duration: "50分", 
-            lat: 33.8885, 
-            lng: 130.8835, 
-            notes: "【免費接駁巴士】小倉站新幹線口（北口）巴士停靠區搭乘「名門大洋渡輪免費接駁專車」（18:40 發車，行車時間約 35~40 分鐘，直達新門司港旅客碼頭）。",
-            foods: "① 小倉站內超商採買飲料、啤酒與零食。"
-          },
-          { 
-            time: "19:20", 
-            name: "新門司港 辦理登船", 
-            duration: "30分", 
-            lat: 33.8789, 
-            lng: 131.0118, 
-            notes: "【登船須知】出示預約電子憑證完成 8 人乘船報到與房卡領取，19:35 前全員登船完畢。",
-            foods: "① 新門司客運大樓伴手禮店 ② 名門大洋船上百匯餐廳。"
-          },
-          { 
-            time: "19:50", 
-            name: "名門大洋渡輪啟航 (夜宿船上)", 
-            duration: "12時40分", 
-            lat: 33.8789, 
-            lng: 131.0118, 
-            notes: "【海上巡航】名門大洋 2 便準時啟航！船上享用觀景百匯晚餐、泡大浴場。約 21:40 穿越瀨戶大橋、隔日清晨 07:15 穿越明石海峽大橋，08:30 準時靠泊大阪南港。",
-            foods: "① 船內景觀自助百匯（現烤黑毛牛肉、生魚片刺身、冰淇淋吧）② 渡輪甲板星空自動販賣機（日清泡麵、冰啤酒）。"
-          }
-        ]
+        title: "博多市區巡禮 → 新門司港登名門大洋渡輪",
+        summary: "參拜博多總鎮守櫛田神社、品嘗人氣手作麵包，傍晚搭車前往新門司港登船，夜宿瀨戶內海景觀渡輪跨越海峽。",
+        mainSpotId: "ferry"
       },
       {
         day: 4,
         date: "2027/02/10 (週三)",
-        title: "大阪南港抵達 → 難波寄物 → 奈良散策",
-        summary: "早上8:30下船，地鐵直達難波寄物，再搭近鐵直達奈良看小鹿。",
-        spotName: "奈良公園・東大寺",
-        stops: [
-          { 
-            time: "08:30", 
-            name: "大阪南港 抵達出港", 
-            duration: "50分", 
-            lat: 34.6293, 
-            lng: 135.4190, 
-            notes: "【交通】渡輪 08:30 靠泊大阪南港。步行經室內連通空橋（約 3 分鐘）至「南港口站」，搭乘南港城線（New Tram）至住之江公園站，轉四橋線至「難波站」（總車程約 28 分鐘，車資 340 日圓）。",
-            foods: "① 南港客運碼頭輕食咖啡 ② 難波站地下街早餐三明治。"
-          },
-          { 
-            time: "09:40", 
-            name: "難波 飯店寄放行李", 
-            duration: "40分", 
-            lat: 34.6669, 
-            lng: 135.5015, 
-            notes: "【寄物】從難波站地下街步行至入住飯店櫃檯，寄放 8 人大行李箱，輕裝出發前往近鐵難波站。",
-            foods: "① Rikuro 老爺爺現烤起司蛋糕（難波本店，徒步 200m，剛出爐會搖鈴）② 乃賀美生吐司（難波店，徒步 450m）。"
-          },
-          { 
-            time: "10:30", 
-            name: "大阪難波 → 搭近鐵直達奈良", 
-            duration: "45分", 
-            lat: 34.6669, 
-            lng: 135.5015, 
-            notes: "【交通】大阪難波站搭乘「近鐵奈良線快速急行」直達「近鐵奈良站」（車程約 38 分鐘，車資 680 日圓，免轉車）。",
-            foods: "① 箱夢 奈良站店（月台手作大和牛與大和茶飯糰）。"
-          },
-          { 
-            time: "11:20", 
-            name: "奈良公園 ＆ 東大寺大佛殿", 
-            duration: "2時00分", 
-            lat: 34.6890, 
-            lng: 135.8398, 
-            notes: "【參觀與小鹿】近鐵奈良站出站步行穿過奈良公園，沿途餵食鹿餅。參觀世界最大木造建築東大寺大佛殿（入殿門票 600 日圓，參觀約 1 小時，公園散策 1 小時）。",
-            foods: "① 中谷堂（近鐵站步行 400m，Tabelog 3.72 現搗熱艾草紅豆麻糬）② 志津香 釜飯（公園店，東大寺參道旁徒步 250m，招牌七幸釜飯）③ 麵鬪庵（徒步 500m，豆皮福袋烏龍麵）。"
-          },
-          { 
-            time: "13:30", 
-            name: "春日大社 ＆ 萬葉植物園參道", 
-            duration: "1時30分", 
-            lat: 34.6814, 
-            lng: 135.8483, 
-            notes: "【參觀】由東大寺漫步穿越茂密的石燈籠古杉林步道（約 900 公尺）至春日大社本殿，參拜朱紅殿宇與青銅吊燈籠。【回程】於春日大社本殿前搭奈良交通公車直達近鐵奈良站（約 10 分鐘）。",
-            foods: "① 春日荷茶屋（春日大社表參道徒步 200m，名物萬葉粥與季節醬菜）② 柿之葉壽司平宗 奈良總本店（近鐵站徒步 450m）。"
-          },
-          { 
-            time: "15:30", 
-            name: "搭近鐵快速急行返回難波", 
-            duration: "45分", 
-            lat: 34.6830, 
-            lng: 135.8277, 
-            notes: "【交通】近鐵奈良站搭乘「近鐵奈良線快速急行」直達大阪難波站（車程約 38 分鐘）。",
-            foods: "① まほろば大仏プリン（近鐵奈良站內，大佛卡士達布丁）。"
-          },
-          { 
-            time: "17:30", 
-            name: "燒肉力丸 難波道頓堀店", 
-            duration: "2時00分", 
-            lat: 34.6690, 
-            lng: 135.5012, 
-            notes: "【晚餐】難波站 14 號出口徒步 200 公尺抵達。享受頂級國產牛現切燒肉吃到飽（用餐限時 120 分鐘，務必提早預約）。",
-            foods: "① 燒肉力丸 道頓堀店（現切國產牛吃到飽）② 本家大起水產 迴轉壽司（徒步 150m）③ 十八番章魚燒（徒步 180m）。"
-          }
-        ]
+        title: "大阪南港抵達 → 難波寄物 → 奈良看小鹿",
+        summary: "清晨渡輪靠泊大阪南港，地鐵直達難波寄物。隨後搭近鐵直達奈良公園與東大寺，傍晚回道頓堀享用燒肉。",
+        mainSpotId: "todaiji"
       },
       {
         day: 5,
-        date: "2027/02/11 (週四，日本國慶日)",
-        title: "大阪城 → 梅田任天堂 → 新世界通天閣",
-        summary: "全日利用 Osaka Metro 地鐵暢行，大阪城避開午後人潮，傍晚通天閣串炸。",
-        spotName: "大阪城天守閣",
-        stops: [
-          { 
-            time: "08:30", 
-            name: "大阪城公園 ＆ 天守閣", 
-            duration: "2時15分", 
-            lat: 34.6873, 
-            lng: 135.5262, 
-            notes: "【參觀】難波搭「Osaka Metro 御堂筋線」轉長堀鶴見綠地線至「森之宮站」（車程約 14 分鐘），出站步行穿過極樂橋登上大阪城天守閣（參觀天守閣約 1 小時，護城河散策 1 小時）。",
-            foods: "① JO-TERRACE OSAKA（城下商場徒步 300m，Gram 舒芙蕾厚鬆餅）② 章魚燒道樂 Wanaka 大阪城店（城下徒步 250m）③ MIRAIZA 舊陸軍第四師團司令部 咖啡茶房（天守閣正前 50m）。"
-          },
-          { 
-            time: "11:15", 
-            name: "Nintendo OSAKA (梅田大丸13F)", 
-            duration: "1時45分", 
-            lat: 34.7020, 
-            lng: 135.4965, 
-            notes: "【購物】森之宮站搭 Osaka Metro 至梅田站（車程約 16 分鐘），直奔大丸梅田 13 樓 Nintendo OSAKA、寶可夢中心與卡普空旗艦店（連假若人多需抽整理券）。",
-            foods: "① 喜八洲總本舖（大丸梅田B1，現烤焦香炙燒醬油糰子）② 阪急百貨 一心堂（徒步 300m，爆汁草莓哈密瓜大福）③ 利久牛舌 梅田店（大丸梅田14F）。"
-          },
-          { 
-            time: "13:30", 
-            name: "心齋橋筋 ＆ 道頓堀散策", 
-            duration: "1時45分", 
-            lat: 34.6710, 
-            lng: 135.5013, 
-            notes: "【逛街打卡】梅田搭地鐵御堂筋線至心齋橋站（車程約 6 分鐘）。沿著遮雨棚拱廊心齋橋筋一路往南逛至戎橋，與固力果跑跑人巨型看板合影。",
-            foods: "① 甲賀流章魚燒 美國村本店（徒步 350m，網蔥美乃滋章魚燒）② だるま串炸 心齋橋店（徒步 150m）③ 宇治園 心齋橋本店（徒步 200m，焙茶霜淇淋）。"
-          },
-          { 
-            time: "15:30", 
-            name: "黑門市場 (下午小吃巡禮)", 
-            duration: "1時15分", 
-            lat: 34.6654, 
-            lng: 135.5070, 
-            notes: "【小吃點心】從道頓堀徒步 650 公尺（約 8~10 分鐘）至黑門市場。把握多數店家 17:00 收攤前，品嘗現烤扇貝、黑鮪魚大腹與濃厚豆漿。",
-            foods: "① 黑門三平（市場內徒步 50m，巨無霸現切生魚片、烤大蝦）② まぐろや黒銀（市場內徒步 80m，黑鮪魚大腹握壽司）③ 石橋食品（市場內徒步 100m，熱騰騰關東煮大根與牛筋）④ 高橋食品（市場內徒步 90m，極厚手作冷豆漿）。"
-          },
-          { 
-            time: "17:15", 
-            name: "新世界 ＆ 通天閣 (元祖串炸晚餐)", 
-            duration: "2時15分", 
-            lat: 34.6525, 
-            lng: 135.5063, 
-            notes: "【交通與晚餐】黑門市場走至「日本橋站」搭 Osaka Metro 堺筋線至「惠美須町站」3號出口（僅 1 站，車程 2 分鐘，車資 190 日圓），出站筆直進入通天閣本通。登上通天閣俯瞰夜景，並在鏘鏘橫丁享用熱騰騰元祖串炸。",
-            foods: "① 八重勝（通天閣旁鏘鏘橫丁徒步 250m，Tabelog 3.63，炸牛串與味噌燉牛筋）② 天狗串炸（八重勝對面徒步 250m）③ 達摩串炸 通天閣總本店（通天閣正下方徒步 60m）。"
-          }
-        ]
+        date: "2027/02/11 (週四)",
+        title: "大阪城天守閣 → 梅田任天堂 → 新世界通天閣",
+        summary: "利用 Osaka Metro 地鐵穿梭名勝，登天守閣俯瞰護城河，逛梅田旗艦商場，傍晚於新世界享用元祖炸串。",
+        mainSpotId: "osakacastle"
       },
       {
         day: 6,
         date: "2027/02/12 (週五)",
-        title: "日本環球影城 (USJ) 狂歡整日",
-        summary: "搭乘 JR 櫻島線直達門口，全日狂玩無負擔。",
-        spotName: "日本環球影城 (USJ)",
-        stops: [
-          { 
-            time: "07:15", 
-            name: "抵達 USJ 門口排隊", 
-            duration: "45分", 
-            lat: 34.6654, 
-            lng: 135.4323, 
-            notes: "【交通】難波搭「阪神難波線」至西九條站，同月台轉乘「JR 櫻島線」直達環球城站（總車程約 18 分鐘），出站步行 200 公尺抵達樂園大門。提早 1 小時排隊等待提早開園。",
-            foods: "① Lawson 環球城站前店（購買炸雞球與御飯糰排隊備戰）。"
-          },
-          { 
-            time: "08:30", 
-            name: "日本環球影城 全日暢玩", 
-            duration: "11時30分", 
-            lat: 34.6654, 
-            lng: 135.4323, 
-            notes: "【全日體驗】依快速通關時段暢玩超級任天堂世界、哈利波特魔法世界、小小兵瘋狂乘車遊、飛天翼龍與好萊塢美夢乘車遊。",
-            foods: "① 奇諾比奧咖啡店（Mario 園區內，蘑菇披薩碗、問號磚塊提拉米蘇）② 三根掃帚（哈利波特園區內，奶油啤酒、烤雞拼盤）③ 小小兵夾心餅乾餐車。"
-          },
-          { 
-            time: "20:15", 
-            name: "環球影城步行街晚餐", 
-            duration: "1時30分", 
-            lat: 34.6675, 
-            lng: 135.4371, 
-            notes: "【晚餐與返程】出園漫步 Universal CityWalk 美食街。吃飽後由環球城站搭乘 JR 櫻島線返回大阪市區飯店休息。",
-            foods: "① TAKOPA 大阪章魚燒博物館（徒步 150m，會津屋、十八番、Yamachan 等5大名店匯聚）② 風神雷神拉麵（徒步 120m）。"
-          }
-        ]
+        title: "日本環球影城 (USJ) 全日狂歡",
+        summary: "搭乘 JR 櫻島線直達園區門口，全日暢玩瑪利歐超級任天堂世界、哈利波特魔法世界與刺激乘車遊。",
+        mainSpotId: "usj"
       },
       {
         day: 7,
         date: "2027/02/13 (週六)",
-        title: "國寶姬路城一日遊 (續住大阪)",
-        summary: "搭 JR 新快速直奔姬路城，下午返回大阪梅田或難波享用晚餐與血拼，續住大阪省去搬大行李。",
-        spotName: "國寶 姬路城",
-        stops: [
-          { 
-            time: "08:45", 
-            name: "大阪出發搭 JR 新快速", 
-            duration: "1時15分", 
-            lat: 34.7025, 
-            lng: 135.4959, 
-            notes: "【交通】JR 大阪站 5 號月台搭乘「JR 神戶線新快速」直達 JR 姬路站（車程約 65 分鐘，免轉車，每 15 分鐘一班）。",
-            foods: "① 神戶元祖年輪蛋糕 Juchheim（JR 大阪站內）② 進々堂 麵包店（大阪站內）。"
-          },
-          { 
-            time: "10:15", 
-            name: "國寶 姬路城 ＆ 好古園", 
-            duration: "3時15分", 
-            lat: 34.8394, 
-            lng: 134.6939, 
-            notes: "【世界遺產參觀】JR 姬路站北口沿大手前通直走約 15 分鐘（1 公里）抵達姬路城大手門。登上 6 層大天守閣、走訪西之丸百間廊下與好古園日式庭園（官方建議完整參觀時間約 2.5~3 小時）。",
-            foods: "① 活水軒（好古園庭園內徒步 200m，名物穴子鰻魚定食佐日式枯山水）② 喜鳥家（姬路城前徒步 350m，播州土雞料理）③ 城見茶屋（姬路城三之丸徒步 100m，現烤千姬丸糰子）。"
-          },
-          { 
-            time: "13:45", 
-            name: "姬路城前商店街 (午餐)", 
-            duration: "1時30分", 
-            lat: 34.8335, 
-            lng: 134.6918, 
-            notes: "【午餐】姬路城前徒步 300 公尺至二階町/美觀街。品嘗名物生薑濃醬油關東煮與烤穴子魚飯。",
-            foods: "① 灘菊酒造 姬路關東煮亭（徒步 400m，秘製生薑濃醬油關東煮，Tabelog 3.55）② 炭火燒穴子 柊（徒步 450m，播磨產烤穴子魚飯）③ 御座候 姬路總本店（JR姬路站旁徒步 800m，現烤紅豆餅發祥店）。"
-          },
-          { 
-            time: "15:45", 
-            name: "搭 JR 新快速返回大阪", 
-            duration: "1時10分", 
-            lat: 34.8277, 
-            lng: 134.6908, 
-            notes: "【交通】JR 姬路站搭乘「JR 神戶線新快速」直達 JR 大阪站（車程約 65 分鐘）。",
-            foods: "① 姬路名物便當（JR 姬路站月台購買）。"
-          },
-          { 
-            time: "17:30", 
-            name: "梅田 / 難波晚餐 (續住大阪)", 
-            duration: "2時00分", 
-            lat: 34.7025, 
-            lng: 135.4959, 
-            notes: "【住宿與晚餐】今晚續住大阪飯店，免搬運行李！晚餐可在梅田藍天大廈周邊或難波享用大阪燒與黑毛和牛燒肉。",
-            foods: "① きじ 梅田空中庭園店（梅田藍天大廈B1滝見小路，Tabelog 3.65 摩登燒）② 燒肉一丁（難波心齋橋店，黑毛和牛包廂）。"
-          }
-        ]
+        title: "世界遺產國寶姬路城一日遊 (續住大阪)",
+        summary: "搭乘 JR 新快速 65 分鐘直奔日本第一白鷺城，漫步好古園日式庭園，免搬大行李續住大阪。",
+        mainSpotId: "himejicastle"
       },
       {
         day: 8,
         date: "2027/02/14 (週日)",
-        title: "大阪移動至京都 → 嵐山散策",
-        summary: "早上大阪退房，搭 JR 新快速 30 分鐘直奔京都寄物，午後前往嵐山竹林與渡月橋。",
-        spotName: "嵐山竹林小徑",
-        stops: [
-          { 
-            time: "08:30", 
-            name: "大阪退房 → 搭 JR 新快速至京都", 
-            duration: "50分", 
-            lat: 34.7025, 
-            lng: 135.4959, 
-            notes: "【交通】大阪飯店退房至 JR 大阪站，搭乘「JR 京都線新快速」直達 JR 京都站（車程僅 29 分鐘，免轉車，每 15 分鐘一班）。",
-            foods: "① 進々堂（JR 京都站內，京都名物脆皮可頌三明治）。"
-          },
-          { 
-            time: "09:30", 
-            name: "京都飯店 Check-in 寄物", 
-            duration: "40分", 
-            lat: 34.9858, 
-            lng: 135.7588, 
-            notes: "【寄物】抵達京都站，步行至預訂飯店櫃檯寄放大行李，隨即返回京都站前往嵐山。",
-            foods: "① 中村藤吉 京都站店（JR西口改札前2F，抽號碼牌外帶生茶凍）。"
-          },
-          { 
-            time: "10:20", 
-            name: "搭 JR 嵯峨野線至嵐山", 
-            duration: "30分", 
-            lat: 34.9858, 
-            lng: 135.7588, 
-            notes: "【交通】京都站 31~33 號月台搭乘「JR 嵯峨野線普通/快速」直達「JR 嵯峨嵐山站」（車程約 12~16 分鐘）。",
-            foods: "① 嵯峨豆腐稻（JR 嵐山站出口徒步 300m）。"
-          },
-          { 
-            time: "11:00", 
-            name: "嵐山渡月橋 ＆ 商店街午餐", 
-            duration: "1時45分", 
-            lat: 35.0129, 
-            lng: 135.6777, 
-            notes: "【午餐與河岸】JR 嵯峨嵐山站步行 600 公尺至嵐山大街，欣賞渡月橋與大堰川山水景致，享用午餐（約 1.5 小時）。",
-            foods: "① 鯛匠 HANANA（嵐山大街徒步 150m，Tabelog 3.70，極品鯛魚茶泡飯名店）② % ARABICA Kyoto Arashiyama（渡月橋北側河岸徒步 200m，絕美河景咖啡）③ 廣川鰻魚飯（嵐山大街徒步 250m，米其林一星，須預約）。"
-          },
-          { 
-            time: "13:00", 
-            name: "天龍寺 曹源池庭園", 
-            duration: "1時15分", 
-            lat: 35.0158, 
-            lng: 135.6775, 
-            notes: "【參觀】由嵐山大街進入天龍寺，漫步臨濟宗禪宗世界遺產曹源池庭園。由北門出境直通竹林小徑。",
-            foods: "① 篩月（天龍寺境內，米其林必比登推薦全素精進料理）② 三忠豆腐 嵐山店（天龍寺北門出口旁 80m，胡麻豆腐）。"
-          },
-          { 
-            time: "14:30", 
-            name: "嵐山竹林小徑 ＆ 野宮神社", 
-            duration: "1時45分", 
-            lat: 35.0171, 
-            lng: 135.6715, 
-            notes: "【散步】穿過翠綠幽深竹林隧道，參拜黑木鳥居祈求締結良緣的野宮神社，一路散步至大河內山莊外圍與常寂光寺門前。",
-            foods: "① 古都芋本舖（竹林入口旁 50m，四色霜淇淋與醬油烤丸子）② 中村屋可樂餅（嵐山大街徒步 400m，現炸牛肉可樂餅）。"
-          },
-          { 
-            time: "16:45", 
-            name: "搭 JR 嵯峨野線返回京都站", 
-            duration: "35分", 
-            lat: 35.0189, 
-            lng: 135.6811, 
-            notes: "【交通】由竹林步行 600 公尺回「JR 嵯峨嵐山站」，搭乘「JR 嵯峨野線」返回京都站（車程約 16 分鐘）。",
-            foods: "① 東洋亭 京都Porta店（京都站地下街直通，百年洋食漢堡排）② 京都拉麵小路 ますたに（京都站10F）。"
-          }
-        ]
+        title: "大阪移動至京都 → 嵐山竹林渡月橋散策",
+        summary: "搭 JR 新快速 30 分鐘直抵京都寄物，隨即前往嵐山漫步渡月橋、天龍寺庭園與翠綠幽深竹林小徑。",
+        mainSpotId: "arashiyama"
       },
       {
         day: 9,
         date: "2027/02/15 (週一)",
-        title: "京都南線：伏見稻荷千本鳥居 ＆ 宇治抹茶",
-        summary: "全程搭乘 JR 奈良線，班次密集直達，避開京都公路塞車。",
-        spotName: "伏見稻荷大社",
-        stops: [
-          { 
-            time: "08:15", 
-            name: "京都站 → 伏見稻荷大社", 
-            duration: "20分", 
-            lat: 34.9671, 
-            lng: 135.7727, 
-            notes: "【交通】京都站 8-10 號月台搭「JR 奈良線普通車」至「稻荷站」（車程僅 5 分鐘，車資 150 日圓），出站正前方即為朱紅大鳥居。",
-            foods: "① 祢ざめ家（稻荷站出口徒步 80m，秀吉賜名老鋪，現烤鰻魚飯與豆皮壽司）。"
-          },
-          { 
-            time: "08:35", 
-            name: "伏見稻荷大社 (千本鳥居)", 
-            duration: "1時45分", 
-            lat: 34.9671, 
-            lng: 135.7727, 
-            notes: "【參觀】早晨遊客較少，穿過千本鳥居至奧社奉拜所、白狐繪馬祈願，一路漫步至能俯瞰京都市景的三之峰或四辻折返（步程約 1.5 小時）。",
-            foods: "① 寶玉堂（大社表參道徒步 120m，現烤狐狸造型手工脆仙貝）② 伏見稻荷煎餅（徒步 100m）。"
-          },
-          { 
-            time: "10:35", 
-            name: "搭 JR 奈良線前往宇治", 
-            duration: "25分", 
-            lat: 34.9669, 
-            lng: 135.7709, 
-            notes: "【交通】JR 稻荷站搭乘「JR 奈良線普通車」直達「JR 宇治站」（車程約 17 分鐘）。",
-            foods: "① 中村藤吉 本店（JR 宇治站南口正對面徒步 80m，提前抽號碼牌！）。"
-          },
-          { 
-            time: "11:05", 
-            name: "平等院 鳳凰堂", 
-            duration: "1時30分", 
-            lat: 34.8893, 
-            lng: 135.8077, 
-            notes: "【參觀】JR 宇治站步行 650 公尺抵達平等院。參觀十圓日幣上的國寶鳳凰堂、鳳翔館博物館，欣賞平安時代淨土庭園美學（參觀約 1.5 小時）。",
-            foods: "① 伊藤久右衛門 平等院店（平等院正門前徒步 100m，抹茶特製芭菲、抹茶生巧克力）② 增田茶舖（平等院正門旁徒步 50m，現刷現撒玄米抹茶霜淇淋）③ 宇治和菓子 駿河屋（表參道徒步 150m，茶糰子）。"
-          },
-          { 
-            time: "12:45", 
-            name: "宇治川散策 ＆ 中村藤吉午餐", 
-            duration: "1時45分", 
-            lat: 34.8902, 
-            lng: 135.8033, 
-            notes: "【午餐與河岸】於中村藤吉本店或平等院店品嘗招牌竹筒生茶凍與抹茶蕎麥麵，沿著宇治川橘島漫步。",
-            foods: "① 中村藤吉 平等院店（宇治川景觀徒步 180m，竹筒裝抹茶生茶凍）② 辻利 宇治本店（表參道徒步 250m）。"
-          },
-          { 
-            time: "14:45", 
-            name: "宇治上神社", 
-            duration: "1時00分", 
-            lat: 34.8913, 
-            lng: 135.8109, 
-            notes: "【參拜】跨過朝霧橋步行 450 公尺，參拜全日本最古老神社建築（世界遺產宇治上神社）。參拜後漫步宇治橋返回 JR 宇治站。",
-            foods: "① 通圓茶屋（宇治橋東詰徒步 400m，創業於1160年平安時代，日本最古老茶屋抹茶糰子）。"
-          },
-          { 
-            time: "16:05", 
-            name: "搭 JR 返回京都站 / 四條河原町", 
-            duration: "35分", 
-            lat: 34.8900, 
-            lng: 135.8000, 
-            notes: "【交通】JR 宇治站搭「JR 奈良線快速」直達京都站（車程約 18 分鐘）。晚上可轉乘公車或地鐵至四條河原町逛街用餐。",
-            foods: "① 三嶋亭 本店（河原町站徒步 200m，Tabelog 3.92 壽喜燒老字號）② 麵屋 豬一（河原町徒步 350m，米其林必比登醬油拉麵）。"
-          }
-        ]
+        title: "京都南線：伏見稻荷千本鳥居 ＆ 宇治抹茶行",
+        summary: "搭 JR 奈良線探訪伏見稻荷千本鳥居，午後前往宇治造訪十圓硬幣上的平等院鳳凰堂，品嘗中村藤吉抹茶生茶凍。",
+        mainSpotId: "fushimi"
       },
       {
         day: 10,
         date: "2027/02/16 (週二)",
-        title: "京都經典古蹟：御苑買皮夾 → 二條城 → 清水寺",
-        summary: "一早開門直奔中立賣休憩所買菊花紋章牛皮夾，隨後二條城與清水寺漫步。",
-        spotName: "清水寺 ＆ 產寧坂",
-        stops: [
-          {
-            time: "08:45",
-            name: "京都御苑 中立賣休憩所 (買皮夾)",
-            duration: "45分",
-            lat: 35.0238,
-            lng: 135.7593,
-            notes: "【採買與計程車】京都站搭地鐵烏丸線至丸太町站或今出川站，步行至中立賣御門。09:00 開門挑選皇室御用菊花紋章牛皮長夾與零錢包（停留約 30 分鐘）。09:35 於御門前直接攔 2 台計程車直達二條城東大手門（跳表約 5 分鐘，車資約 800 日圓）。",
-            foods: "① 檜垣茶寮（中立賣休憩所內，現刷宇治抹茶與京都御所限定蕎麥麵）② 虎屋茶寮 一條店（徒步 350m，室町時代皇家御用和菓子羊羹老鋪）。"
-          },
-          {
-            time: "09:50",
-            name: "元離宮 二條城",
-            duration: "1時45分",
-            lat: 35.0142,
-            lng: 135.7482,
-            notes: "【參觀】參觀德川家康興建的國寶二之丸御殿（踩踏發出鳥鳴聲的鶯啼地板與狩野派壁畫）、二之丸庭園（參觀約 1.5 小時）。【移動】二條城前搭地鐵東西線至三條京阪站，轉乘京阪電車至祇園四條站（約 15 分鐘）。",
-            foods: "① 前田咖啡 二條城店（城內休憩所，京都復古手沖咖啡）② 神來拉麵（二條城前徒步 400m，京都背脂醬油拉麵）。"
-          },
-          {
-            time: "12:00",
-            name: "祇園 / 清水五條 (午餐)",
-            duration: "1時15分",
-            lat: 35.0037,
-            lng: 135.7725,
-            notes: "【午餐】漫步鴨川旁享用京都特色湯豆腐或天婦羅丼飯，準備午後漫步上清水寺。",
-            foods: "① 祇園辻利 本店（祇園四條徒步 150m，宇治抹茶霜淇淋）② 茶寮都路里 祇園本店（宇治特製抹茶聖代，Tabelog 3.65）③ 天周（祇園徒步 200m，名物大蝦穴子天丼）。"
-          },
-          {
-            time: "13:30",
-            name: "清水寺 ＆ 二年坂・三年坂",
-            duration: "3時00分",
-            lat: 34.9949,
-            lng: 135.7850,
-            notes: "【參觀與散步】由松原通或二年坂、三年坂緩坡走訪清水寺本堂清水舞台、音羽之瀑（參觀清水寺約 1.5 小時，二年坂、三年坂石疊老街散策約 1.5 小時）。",
-            foods: "① 總本家 奧丹清水（產寧坂徒步 100m，創業 380 年京都最古老湯豆腐名店）② 阿闍梨餅本舖 清水店（三年坂徒步 80m，外皮軟糯現做阿闍梨餅）③ 八橋茶屋（清水坂徒步 50m，生八橋煎餅）。"
-          },
-          {
-            time: "17:00",
-            name: "八坂神社 ＆ 祇園花見小路",
-            duration: "1時30分",
-            lat: 35.0037,
-            lng: 135.7785,
-            notes: "【夜景與漫步】穿過八坂神社舞殿（傍晚掛滿商家的提燈點亮極為壯觀），漫步花見小路日式町家。搭乘京都市營公車 206 號或直接搭計程車返回京都站。",
-            foods: "① 鍵善良房 本店（祇園徒步 150m，享譽全日本的極品黑糖葛切，Tabelog 3.79）② 祇園 弘燒肉（花見小路徒步 250m，黑毛和牛燒肉）。"
-          }
-        ]
+        title: "京都經典古蹟：京都御苑 → 二條城 → 清水寺",
+        summary: "造訪御苑中立賣休憩所、參觀國寶二條城鶯啼地板，午後漫步清水舞台與二年坂、三年坂老街。",
+        mainSpotId: "kiyomizu"
       },
       {
         day: 11,
         date: "2027/02/17 (週三)",
-        title: "京都站伴手禮採買 → 關西國際機場 (返程)",
-        summary: "京都站寄物、享受京都車站最後美食採買，搭乘 JR 關空特急 Haruka 直達機場第一航廈。",
-        spotName: "關西國際機場 (KIX)",
-        stops: [
-          {
-            time: "09:30",
-            name: "京都站退房 ＆ 伴手禮最後衝刺",
-            duration: "2時30分",
-            lat: 34.9858,
-            lng: 135.7588,
-            notes: "【行李與採買】飯店退房後於京都站 Porta 地下街或伊勢丹百貨購買京都銘菓（Malebranche 茶之香濃抹茶餅、西利漬物、八橋）。",
-            foods: "① Malebranche 茶之香（JR 京都站西口前 50m，京都限定極厚濃抹茶夾心餅）② 東洋亭 百年洋食（京都站地下街 Porta 徒步 100m）③ 京都拉麵小路（京都站大樓 10F，集結日本全境拉麵名店）。"
-          },
-          {
-            time: "12:15",
-            name: "搭 JR 關空特急 Haruka 前往機場",
-            duration: "1時25分",
-            lat: 34.9858,
-            lng: 135.7588,
-            notes: "【交通】京都站 30 號專用月台搭乘「JR 關空特急 Haruka」直達關西國際機場第一航廈（車程約 78~80 分鐘，每 30 分鐘一班）。",
-            foods: "① 志津屋 SIZUYA（京都站八條口，購買元祖炸牛肉三明治炸牛排堡帶上 Haruka 享用）。"
-          },
-          {
-            time: "14:00",
-            name: "關西國際機場 (KIX) 第一航廈",
-            duration: "3時00分",
-            lat: 34.4320,
-            lng: 135.2304,
-            notes: "【登機與出境】抵達關西機場站，走聯絡通道 2 分鐘直達第一航廈 4 樓出發大廳。起飛前 2.5~3 小時辦理報到託運與安檢出境，於免稅店採買最後伴手禮。",
-            foods: "① KIX 出境免稅區伴手禮（白色戀人、ROYCE 生巧克力、東京芭娜娜）② 神座拉麵 關空店（第一航廈美食街）。"
-          }
-        ]
+        title: "京都站伴手禮最後衝刺 → 關西機場返程",
+        summary: "於京都站地下街採買 Malebranche 濃抹茶夾心餅等銘菓，搭乘 JR 特急 Haruka 直達關西機場辦理託運登機。",
+        mainSpotId: "kyotostation"
       }
     ];
 
-    const STORAGE_KEY = "kyushu_kansai_trip_2027_v5";
-    const EXPENSES_KEY = "kyushu_kansai_trip_expenses_v5";
-    const CHECKLIST_KEY = "kyushu_kansai_trip_checklist_v5";
-    const UQ_SAVED_KEY = "kyushu_kansai_trip_uq_v5";
-    const DEFAULT_CHECKLIST = [
-      { text: "護照（有效期限需大於 6 個月）", done: false },
-      { text: "Visit Japan Web (VJW) 填寫並截圖 QR Code", done: false },
-      { text: "日幣現金（8 人共同分帳公費備妥）", done: false },
-      { text: "海外高回饋信用卡（或 Suica / ICOCA 綁定 Apple Pay）", done: false },
-      { text: "日本上網 SIM 卡 / eSIM 設定完成", done: false },
-      { text: "名門大洋渡輪 預約確認單（電子憑證）", done: false },
-      { text: "日本環球影城 門票 ＋ 快速通關 QR Code", done: false },
-      { text: "常備個人藥物（胃腸藥、止痛藥、暈船藥）", done: false },
-      { text: "行動電源 ＋ 萬用轉接頭 ＋ 充電線", done: false },
-      { text: "折疊傘 ＆ 輕便保暖防風外套（早晚溫差大）", done: false }
+    // 超過 15 個以上日本經典景點資料庫（明亮自然 Unsplash 真實街景與建築攝影）
+    const SPOTS_DATABASE = [
+      {
+        id: "mojiko",
+        name: "門司港懷舊街區",
+        region: "福岡/門司港",
+        category: "古蹟名勝",
+        day: 1,
+        img: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=800&q=80",
+        duration: "2小時30分",
+        hours: "全天開放 (洋館多為 09:00 - 17:00)",
+        transit: "從 JR 小倉站搭乘「JR 鹿兒島本線」直達終點「門司港站」（車程約 14 分鐘），出站即抵達懷舊街區。",
+        foods: "① 伽哩本舖 門司港レトロ店（招牌焗烤燒咖哩）② BEAR FRUITS（香料燒咖哩）",
+        desc: "大正時代作為國際貿易港口的洋風紅磚街區，完整保留舊門司三井俱樂部、海峽廣場與歷史車站建築，海風微拂漫步極為愜意。",
+        lat: 33.9458,
+        lng: 130.9634
+      },
+      {
+        id: "kokura",
+        name: "小倉城天守閣",
+        region: "福岡/門司港",
+        category: "古蹟名勝",
+        day: 1,
+        img: "https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=800&q=80",
+        duration: "1小時15分",
+        hours: "09:00 - 18:00 (11月~3月至17:00)",
+        transit: "JR 小倉站南口步行約 15 分鐘，或由西小倉站徒步約 10 分鐘即可抵達城郭庭園入口。",
+        foods: "① 田舎庵 小倉本店（米其林推薦百年鰻魚飯）② だるま堂（炒烏龍麵元祖名店）",
+        desc: "細川忠興建構的「唐造」天守閣，登上展望樓層可遠眺小倉市區與紫川景致，城下庭園四季風雅。",
+        lat: 33.8845,
+        lng: 130.8741
+      },
+      {
+        id: "dazaifu",
+        name: "太宰府天滿宮",
+        region: "福岡/門司港",
+        category: "古蹟名勝",
+        day: 2,
+        img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80",
+        duration: "1小時45分",
+        hours: "06:00 - 19:00 (隨季節略有調整)",
+        transit: "從西鐵福岡(天神)站搭乘西鐵特急至「西鐵二日市」，同月台轉乘太宰府線至「太宰府站」（約 30 分鐘）。",
+        foods: "① かさの家（排隊第一現烤梅枝餅）② 福太郎 太宰府店（明太子燒飯糰）",
+        desc: "全日本天滿宮之總本宮，供奉學問之神菅原道真。走過心字池太鼓橋、撫摸御神牛祈求智慧，表參道滿溢熱騰騰梅枝餅香氣。",
+        lat: 33.5215,
+        lng: 130.5349
+      },
+      {
+        id: "yanagawa",
+        name: "柳川水鄉扁舟巡禮",
+        region: "福岡/門司港",
+        category: "水鄉渡輪",
+        day: 2,
+        img: "https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=800&q=80",
+        duration: "1小時30分",
+        hours: "09:00 - 16:30 (每 30 分鐘一班)",
+        transit: "西鐵福岡(天神)搭乘西鐵天神大牟田線特急直達「西鐵柳川站」（車程 49 分鐘），出站轉搭乘船處專屬接駁車。",
+        foods: "① 若松屋（安政年間創業，木盒蒸烤極品鰻魚飯）② 元祖本吉屋（340年秘傳醬汁）",
+        desc: "漫遊交織於古柳水畔的護城河道，船夫撐長篙歌唱歷史民謠，下船後品嘗粒粒吸飽甘甜蒲燒醬汁的蒸籠鰻魚飯。",
+        lat: 33.1678,
+        lng: 130.4165
+      },
+      {
+        id: "kushida",
+        name: "博多總鎮守 櫛田神社",
+        region: "福岡/門司港",
+        category: "古蹟名勝",
+        day: 3,
+        img: "https://images.unsplash.com/photo-1590559899731-a3728805f98f?auto=format&fit=crop&w=800&q=80",
+        duration: "50分",
+        hours: "本殿 04:00 - 22:00",
+        transit: "博多站搭乘福岡市營地下鐵七隈線至「櫛田神社前站」（僅 1 站，2 分鐘），出站步行 2 分鐘即達。",
+        foods: "① 博多祇園鐵鍋餃子（酥脆爆汁）② 吉塚鰻魚屋（福岡百年鰻魚飯第一名店）",
+        desc: "博多在地居民最信奉的總鎮守，也是著名祭典「博多祇園山笠」起點，境內常設高達十公尺的裝飾巨大飾山笠，宏偉壯觀。",
+        lat: 33.5930,
+        lng: 130.4106
+      },
+      {
+        id: "ferry",
+        name: "名門大洋渡輪 (瀨戶內海巡航)",
+        region: "福岡/門司港",
+        category: "水鄉渡輪",
+        day: 3,
+        img: "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&w=800&q=80",
+        duration: "夜間航程 12小時40分",
+        hours: "新門司港 19:50 啟航 → 大阪南港 08:30 靠泊",
+        transit: "JR 小倉站新幹線口（北口）搭乘名門大洋免費直達接駁巴士（18:40 發車，約 35 分鐘）直達新門司客運碼頭。",
+        foods: "① 船上景觀百匯自助餐（現切黑毛牛、生魚片）② 甲板自動販賣機消夜",
+        desc: "日本頂級過夜景觀客輪！在舒適客房內安眠，夜晚甲板仰望瀨戶大橋璀璨夜景，泡大浴場迎接晨曦下的明石海峽大橋，免去昂貴長途新幹線與旅館費用。",
+        lat: 33.8789,
+        lng: 131.0118
+      },
+      {
+        id: "todaiji",
+        name: "奈良公園・東大寺大佛殿",
+        region: "宇治/奈良",
+        category: "古蹟名勝",
+        day: 4,
+        img: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=800&q=80",
+        duration: "2小時30分",
+        hours: "08:00 - 17:00 (大佛殿參拜)",
+        transit: "大阪難波站搭乘「近鐵奈良線快速急行」直達「近鐵奈良站」（約 38 分鐘），出站步行穿越奈良公園即達。",
+        foods: "① 中谷堂（現搗熱艾草紅豆麻糬）② 志津香 釜飯（招牌七幸釜飯）",
+        desc: "世界最大的木造建築之一，堂內端坐十六公尺高盧舍那大佛。公園內千餘隻受保護的野生鹿群親人溫順，是初次訪日必去景點。",
+        lat: 34.6890,
+        lng: 135.8398
+      },
+      {
+        id: "osakacastle",
+        name: "大阪城天守閣與公園",
+        region: "大阪",
+        category: "古蹟名勝",
+        day: 5,
+        img: "https://images.unsplash.com/photo-1557409518-691ebcd96038?auto=format&fit=crop&w=800&q=80",
+        duration: "2小時00分",
+        hours: "09:00 - 17:00 (天守閣最後入場 16:30)",
+        transit: "搭 Osaka Metro 長堀鶴見綠地線至「森之宮站」或中央線「谷町四丁目站」，穿過極樂橋步行上城。",
+        foods: "① JO-TERRACE OSAKA（厚鬆餅、咖啡店）② 章魚燒道樂 Wanaka",
+        desc: "豐臣秀吉奠基的天下名城，雄偉的巨石石垣與護城河景緻令人驚嘆，頂層展望台可將現代大阪城景盡收眼底。",
+        lat: 34.6873,
+        lng: 135.5262
+      },
+      {
+        id: "tsutenkaku",
+        name: "通天閣與新世界街區",
+        region: "大阪",
+        category: "美食購物",
+        day: 5,
+        img: "https://images.unsplash.com/photo-1590253230532-a5b6f0411516?auto=format&fit=crop&w=800&q=80",
+        duration: "2小時00分",
+        hours: "通天閣展望台 10:00 - 20:00，街區餐廳多至深夜",
+        transit: "Osaka Metro 堺筋線「惠美須町站」3號出口步行 3 分鐘，或御堂筋線「動物園前站」步行 5 分鐘。",
+        foods: "① 八重勝串炸（鏘鏘橫丁排隊第一炸牛串）② 天狗串炸（味噌燉牛筋）",
+        desc: "充滿昭和復古下町風情的大阪地標，巨型河豚與串炸看板林立。在此摸摸比利肯福神的腳底祈求好運，品嘗酥脆不膩口的元祖串炸。",
+        lat: 34.6525,
+        lng: 135.5063
+      },
+      {
+        id: "usj",
+        name: "日本環球影城 (USJ)",
+        region: "大阪",
+        category: "主題樂園",
+        day: 6,
+        img: "https://images.unsplash.com/photo-1505995433366-e12047f3f144?auto=format&fit=crop&w=800&q=80",
+        duration: "全日遊玩 10~12小時",
+        hours: "通常為 08:30 - 21:30 (每日開園依官網公告為準)",
+        transit: "大阪難波搭阪神難波線至「西九條站」，轉乘「JR 櫻島線」直達「環球城站 (Universal-City)」，出站步行 200m。",
+        foods: "① 奇諾比奧咖啡店（Mario蘑菇碗）② 三根掃帚（奶油啤酒與烤雞）",
+        desc: "全亞洲最火紅主題樂園！走進超級任天堂世界擊打問號方塊，進入霍格華茲魔法城堡探險，刺激與沉浸感無與倫比。",
+        lat: 34.6654,
+        lng: 135.4323
+      },
+      {
+        id: "himejicastle",
+        name: "國寶 姬路城 (白鷺城)",
+        region: "姬路",
+        category: "古蹟名勝",
+        day: 7,
+        img: "https://images.unsplash.com/photo-1570459027562-4a916cc6113f?auto=format&fit=crop&w=800&q=80",
+        duration: "3小時00分",
+        hours: "09:00 - 17:00 (最後入城 16:00)",
+        transit: "從 JR 大阪站搭乘「JR 神戶線新快速」直達「JR 姬路站」（車程約 65 分鐘），北口出站沿大手前通直行 15 分鐘。",
+        foods: "① 灘菊酒造 姬路關東煮（生薑濃醬油）② 炭火燒穴子 柊（播磨產星鰻飯）",
+        desc: "日本首批登錄世界文化遺產的國寶天守閣！白灰漿粉刷外壁宛若展翅欲飛的白鷺，木造大天守閣保存完整無損，震撼壯美。",
+        lat: 34.8394,
+        lng: 134.6939
+      },
+      {
+        id: "arashiyama",
+        name: "嵐山渡月橋與竹林小徑",
+        region: "京都",
+        category: "古蹟名勝",
+        day: 8,
+        img: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=800&q=80",
+        duration: "3小時30分",
+        hours: "戶外街區與竹林全日開放，天龍寺 08:30 - 17:00",
+        transit: "京都站 31~33 月台搭乘「JR 嵯峨野線」至「JR 嵯峨嵐山站」（車程約 16 分鐘），出站步行 10 分鐘即抵竹林入口。",
+        foods: "① 鯛匠 HANANA（極品鯛魚茶泡飯名店）② % ARABICA Kyoto Arashiyama（絕美河景咖啡）",
+        desc: "京都平安貴族度假名勝。漫步大堰川渡月橋，穿過幽綠翠靜的數萬株竹林小徑，參拜黑木鳥居野宮神社，景致詩意清幽。",
+        lat: 35.0171,
+        lng: 135.6715
+      },
+      {
+        id: "fushimi",
+        name: "伏見稻荷大社 (千本鳥居)",
+        region: "京都",
+        category: "古蹟名勝",
+        day: 9,
+        img: "https://images.unsplash.com/photo-1478436127897-769e00d2c715?auto=format&fit=crop&w=800&q=80",
+        duration: "2小時00分",
+        hours: "全日開放自由參拜",
+        transit: "從 JR 京都站 8~10 月台搭乘「JR 奈良線普通車」至「稻荷站」（車程僅 5 分鐘），出站正前方即是朱紅表參道大鳥居。",
+        foods: "① 祢ざめ家（秀吉賜名名店，蒲燒鰻魚飯）② 寶玉堂（狐狸造型現烤煎餅）",
+        desc: "全日本三萬餘座稻荷神社總本宮，供奉象徵五穀豐登的稻荷大神。沿著稻荷山綿延數千座由信眾奉納的朱紅鳥居，極為壯麗。",
+        lat: 34.9671,
+        lng: 135.7727
+      },
+      {
+        id: "byodoin",
+        name: "宇治 平等院鳳凰堂",
+        region: "宇治/奈良",
+        category: "古蹟名勝",
+        day: 9,
+        img: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
+        duration: "1小時30分",
+        hours: "庭園 08:30 - 17:30，鳳翔館 09:00 - 17:00",
+        transit: "JR 稻荷站搭乘「JR 奈良線」直達「JR 宇治站」（車程 17 分鐘），出站步行約 10 分鐘穿過表參道抵達。",
+        foods: "① 中村藤吉 本店（竹筒裝抹茶生茶凍）② 伊藤久右衛門 平等院店（抹茶芭菲）",
+        desc: "藤原賴通於平安時代創建的淨土庭園代表作，倒映於阿字池上的鳳凰堂為現存國寶，更是日幣十圓硬幣上的代表浮雕圖案。",
+        lat: 34.8893,
+        lng: 135.8077
+      },
+      {
+        id: "kiyomizu",
+        name: "音羽山 清水寺與二年坂",
+        region: "京都",
+        category: "古蹟名勝",
+        day: 10,
+        img: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=800&q=80",
+        duration: "3小時00分",
+        hours: "06:00 - 18:00 (夜間特別拜觀期間延長)",
+        transit: "京都站前公車總站搭乘「市營公車 206 號或 86 號」至「清水道」或「五條坂」下車，沿松原通緩坡步行 10 分鐘。",
+        foods: "① 總本家 奧丹清水（380年京都最古老湯豆腐）② 阿闍梨餅本舖 清水店",
+        desc: "棟樑結構未用一釘構築的懸空「清水舞台」，可俯瞰京都盆地與櫻楓絕景。順遊音羽之瀑與二年坂、三年坂的傳統石疊老街。",
+        lat: 34.9949,
+        lng: 135.7850
+      },
+      {
+        id: "kyotostation",
+        name: "京都車站與伴手禮名店街",
+        region: "京都",
+        category: "美食購物",
+        day: 11,
+        img: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=800&q=80",
+        duration: "2小時30分",
+        hours: "車站地下街 Porta 10:00 - 20:30",
+        transit: "京都大眾交通樞紐，地鐵、JR新幹線與公車總站匯聚，搭乘 JR 關空特急 Haruka 約 80 分鐘直通關西機場第一航廈。",
+        foods: "① Malebranche（茶之香濃抹茶夾心餅）② 東洋亭（百年洋食鐵板漢堡排）",
+        desc: "由建築大師原廣司設計的現代主義玻璃鋼骨車站，樓層內進駐伊勢丹百貨、Porta 地下街與拉麵小路，返程出境伴手禮最佳補給站。",
+        lat: 34.9858,
+        lng: 135.7588
+      }
     ];
 
-    let itineraryData = [];
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      itineraryData = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_ITINERARY));
-    } catch (e) {
-      itineraryData = JSON.parse(JSON.stringify(DEFAULT_ITINERARY));
-    }
+    /* -------------------------------------------------------------
+       2. 應用程式全域狀態管理 (State Management)
+       ------------------------------------------------------------- */
+    const FAVORITES_STORAGE_KEY = "kyushu_kansai_trip_favs_v2";
 
-    let expenses = [];
-    try {
-      const savedExp = localStorage.getItem(EXPENSES_KEY);
-      expenses = savedExp ? JSON.parse(savedExp) : [];
-    } catch(e) {
-      expenses = [];
-    }
-
-    let checklist = [];
-    try {
-      const savedChk = localStorage.getItem(CHECKLIST_KEY);
-      checklist = savedChk ? JSON.parse(savedChk) : JSON.parse(JSON.stringify(DEFAULT_CHECKLIST));
-    } catch(e) {
-      checklist = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST));
-    }
-
-    let uqSavedList = [];
-    try {
-      const savedUq = localStorage.getItem(UQ_SAVED_KEY);
-      uqSavedList = savedUq ? JSON.parse(savedUq) : [];
-    } catch(e) {
-      uqSavedList = [];
-    }
-
-    // 全域變數明確宣告 (避免在 GitHub Pages / 嚴格環境下拋出 ReferenceError 導致後續程式碼全部中斷)
-    let currentDayIndex = 0;
-    let currentJpyTwdRate = 0.2100;
-    let mapInstance = null;
-    let mapMarkersLayer = null;
-    let mapPolyline = null;
-    let mapMarkers = [];
-
-    // DOM 元素快取宣告
-    const dayBadge = document.getElementById("dayBadge");
-    const dayDate = document.getElementById("dayDate");
-    const dayTitle = document.getElementById("dayTitle");
-    const dayNotes = document.getElementById("dayNotes");
-    const spotName = document.getElementById("spotName");
-    const stopCountBadge = document.getElementById("stopCountBadge");
-    const dayNavList = document.getElementById("dayNavList");
-    const mobileCardsContainer = document.getElementById("mobileCardsContainer");
-    const emptyState = document.getElementById("emptyState");
-
-    const weatherLocationName = document.getElementById("weatherLocationName");
-    const weatherTemp = document.getElementById("weatherTemp");
-    const weatherCondition = document.getElementById("weatherCondition");
-    const weatherApparent = document.getElementById("weatherApparent");
-    const weatherWind = document.getElementById("weatherWind");
-    const weatherIconBox = document.getElementById("weatherIconBox");
-    const weatherAdvice = document.getElementById("weatherAdvice");
-    const refreshWeatherBtn = document.getElementById("refreshWeatherBtn");
-
-    const itineraryMap = document.getElementById("itineraryMap");
-    const toggleMapSizeBtn = document.getElementById("toggleMapSizeBtn");
-    const toggleMapSizeText = document.getElementById("toggleMapSizeText");
-    const floatingMapResizeBtn = document.getElementById("floatingMapResizeBtn");
-    const floatingMapResizeText = document.getElementById("floatingMapResizeText");
-
-    const addStopBtn = document.getElementById("addStopBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const exportBtn = document.getElementById("exportBtn");
-
-    const modalOverlay = document.getElementById("modalOverlay");
-    const modalTitle = document.getElementById("modalTitle");
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const cancelModalBtn = document.getElementById("cancelModalBtn");
-    const itemForm = document.getElementById("itemForm");
-    const editIndexInput = document.getElementById("editIndex");
-    const itemTimeInput = document.getElementById("itemTime");
-    const itemNameInput = document.getElementById("itemName");
-    const itemDurationInput = document.getElementById("itemDuration");
-    const itemLatInput = document.getElementById("itemLat");
-    const itemLngInput = document.getElementById("itemLng");
-    const itemNotesInput = document.getElementById("itemNotes");
-    const itemFoodsInput = document.getElementById("itemFoods");
-
-    const checklistItems = document.getElementById("checklistItems");
-    const checklistProgress = document.getElementById("checklistProgress");
-
-    // 旅遊工具分頁切換
-    const tabItinerary = document.getElementById("tabItinerary");
-    const tabSplitBill = document.getElementById("tabSplitBill");
-    const tabCurrency = document.getElementById("tabCurrency");
-    const tabUniqlo = document.getElementById("tabUniqlo");
-    const tabChecklist = document.getElementById("tabChecklist");
-
-    const viewItinerary = document.getElementById("viewItinerary");
-    const viewSplitBill = document.getElementById("viewSplitBill");
-    const viewCurrency = document.getElementById("viewCurrency");
-    const viewUniqlo = document.getElementById("viewUniqlo");
-    const viewChecklist = document.getElementById("viewChecklist");
-    const daysNavBarContainer = document.getElementById("daysNavBarContainer");
-
-    const toolTabs = [
-      { btn: tabItinerary, view: viewItinerary, showDaysNav: true },
-      { btn: tabSplitBill, view: viewSplitBill, showDaysNav: false },
-      { btn: tabCurrency, view: viewCurrency, showDaysNav: false },
-      { btn: tabUniqlo, view: viewUniqlo, showDaysNav: false },
-      { btn: tabChecklist, view: viewChecklist, showDaysNav: false }
-    ];
-
-    function switchToolView(targetIndex) {
-      toolTabs.forEach((tab, idx) => {
-        if (idx === targetIndex) {
-          tab.btn.className = "tool-tab-btn active px-2.5 py-1 rounded-lg bg-[#b83b26] text-amber-50 font-bold flex items-center gap-1";
-          tab.view.classList.remove("hidden");
-        } else {
-          tab.btn.className = "tool-tab-btn px-2.5 py-1 rounded-lg bg-[#eae3d2] text-stone-700 hover:bg-[#dfd6c2] font-semibold flex items-center gap-1";
-          tab.view.classList.add("hidden");
-        }
-      });
-
-      if (toolTabs[targetIndex].showDaysNav) {
-        daysNavBarContainer.classList.remove("hidden");
-      } else {
-        daysNavBarContainer.classList.add("hidden");
-      }
-
-      if (targetIndex === 0 && mapInstance) {
-        setTimeout(() => mapInstance.invalidateSize(), 150);
-      }
-    }
-
-    tabItinerary.addEventListener("click", () => switchToolView(0));
-    tabSplitBill.addEventListener("click", () => {
-      switchToolView(1);
-      renderExpenses();
-    });
-    tabCurrency.addEventListener("click", () => switchToolView(2));
-    tabUniqlo.addEventListener("click", () => {
-      switchToolView(3);
-      calculateUniqlo();
-      renderUqSavedList();
-    });
-    tabChecklist.addEventListener("click", () => {
-      switchToolView(4);
-      renderChecklist();
-    });
-
-    // 8人分帳邏輯
-    const expenseForm = document.getElementById("expenseForm");
-    const expenseItem = document.getElementById("expenseItem");
-    const expenseAmount = document.getElementById("expenseAmount");
-    const expenseList = document.getElementById("expenseList");
-    const totalExpenseJPY = document.getElementById("totalExpenseJPY");
-    const perPersonJPY = document.getElementById("perPersonJPY");
-    const perPersonTWD = document.getElementById("perPersonTWD");
-    const splitExchangeRateLabel = document.getElementById("splitExchangeRateLabel");
-
-    // 匯率 DOM
-    const calcJPY = document.getElementById("calcJPY");
-    const calcTWD = document.getElementById("calcTWD");
-    const rateBadge = document.getElementById("rateBadge");
-    const rateUpdateTime = document.getElementById("rateUpdateTime");
-    const customRateInput = document.getElementById("customRateInput");
-    const refreshRateBtn = document.getElementById("refreshRateBtn");
-
-    // 連線即時匯率 API (Open Exchange Rates API / open.er-api.com)
-    async function fetchLiveExchangeRate() {
-      if (rateBadge) rateBadge.textContent = "更新中...";
-      try {
-        const res = await fetch("https://open.er-api.com/v6/latest/JPY");
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.rates && data.rates.TWD) {
-            currentJpyTwdRate = parseFloat(data.rates.TWD);
-            const formattedRate = currentJpyTwdRate.toFixed(4);
-            if (rateBadge) rateBadge.textContent = `1 JPY ≈ NT$ ${formattedRate}`;
-            if (customRateInput) customRateInput.value = formattedRate;
-            if (splitExchangeRateLabel) splitExchangeRateLabel.textContent = `即時匯率 ${formattedRate}`;
-            
-            const uniqloRateDisplay = document.getElementById("uniqloRateDisplay");
-            if (uniqloRateDisplay) uniqloRateDisplay.textContent = `即時匯率 1 JPY ≈ NT$ ${formattedRate}`;
-
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            if (rateUpdateTime) rateUpdateTime.textContent = `更新時間：今天 ${timeStr}`;
-            
-            updateCurrencyCalculation();
-            calculateUniqlo();
-            renderExpenses();
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("無法取得即時匯率，嘗試備援管道", err);
-        try {
-          const backupRes = await fetch("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/jpy.json");
-          if (backupRes.ok) {
-            const bData = await backupRes.json();
-            if (bData && bData.jpy && bData.jpy.twd) {
-              currentJpyTwdRate = parseFloat(bData.jpy.twd);
-              const formattedRate = currentJpyTwdRate.toFixed(4);
-              if (rateBadge) rateBadge.textContent = `1 JPY ≈ NT$ ${formattedRate}`;
-              if (customRateInput) customRateInput.value = formattedRate;
-              if (splitExchangeRateLabel) splitExchangeRateLabel.textContent = `即時匯率 ${formattedRate}`;
-              updateCurrencyCalculation();
-              calculateUniqlo();
-              renderExpenses();
-              return;
-            }
-          }
-        } catch(bErr) {}
-      }
-      if (rateBadge) rateBadge.textContent = `1 JPY ≈ NT$ ${currentJpyTwdRate.toFixed(4)} (離線預設)`;
-      if (rateUpdateTime) rateUpdateTime.textContent = "更新時間：離線預設";
-      updateCurrencyCalculation();
-      calculateUniqlo();
-    }
-
-    function updateCurrencyCalculation() {
-      if (!calcJPY || !calcTWD) return;
-      const jpyVal = parseFloat(calcJPY.value) || 0;
-      const rate = customRateInput && !isNaN(parseFloat(customRateInput.value)) 
-        ? parseFloat(customRateInput.value) 
-        : currentJpyTwdRate;
-      calcTWD.value = Math.round(jpyVal * rate);
-    }
-
-    if (calcJPY) {
-      calcJPY.addEventListener("input", updateCurrencyCalculation);
-    }
-    if (customRateInput) {
-      customRateInput.addEventListener("input", () => {
-        const customRate = parseFloat(customRateInput.value);
-        if (!isNaN(customRate) && customRate > 0) {
-          currentJpyTwdRate = customRate;
-          updateCurrencyCalculation();
-          calculateUniqlo();
-          renderExpenses();
-        }
-      });
-    }
-    // ==========================================
-    // UNIQLO 台日比價計算邏輯 (官方核實資料庫 + 官網即時雙向查驗)
-    // ==========================================
-    const uqProductCodeInput = document.getElementById("uqProductCodeInput");
-    const uqSearchCodeBtn = document.getElementById("uqSearchCodeBtn");
-    const uqDirectLinks = document.getElementById("uqDirectLinks");
-    const uqLinkTw = document.getElementById("uqLinkTw");
-    const uqLinkJp = document.getElementById("uqLinkJp");
-
-    const uqItemName = document.getElementById("uqItemName");
-    const uqJpyPrice = document.getElementById("uqJpyPrice");
-    const uqTwdPrice = document.getElementById("uqTwdPrice");
-    const uqTaxFreeCheck = document.getElementById("uqTaxFreeCheck");
-    const uqActualTwd = document.getElementById("uqActualTwd");
-    const uqJpyCalcDesc = document.getElementById("uqJpyCalcDesc");
-    const uqTwOriginal = document.getElementById("uqTwOriginal");
-    const uqSavingsTwd = document.getElementById("uqSavingsTwd");
-    const uqDiscountRate = document.getElementById("uqDiscountRate");
-    const uqTaxFreeStatusBadge = document.getElementById("uqTaxFreeStatusBadge");
-    const uqAddToListBtn = document.getElementById("uqAddToListBtn");
-    const uqSavedItems = document.getElementById("uqSavedItems");
-    const uqTotalSavedBanner = document.getElementById("uqTotalSavedBanner");
-
-    // 官方實際核實資料庫（嚴格對照 UNIQLO 官方原廠商品定價，非隨機猜測）
-    const UNIQ_CODE_DATABASE = {
-      // 羽絨與保暖外套
-      "460914": { name: "女裝 特級極輕羽絨外套", jpy: 6990, twd: 2490 },
-      "460913": { name: "女裝 特級極輕羽絨背心", jpy: 4990, twd: 1490 },
-      "460921": { name: "男裝 特級極輕羽絨外套", jpy: 7990, twd: 2490 },
-      "460922": { name: "男裝 特級極輕羽絨背心", jpy: 4990, twd: 1490 },
-      "461085": { name: "男裝 無縫羽絨連帽外套", jpy: 14900, twd: 4990 },
-      "459622": { name: "防風刷毛連帽外套", jpy: 4990, twd: 1490 },
-      "460324": { name: "休閒連帽外套 (長袖)", jpy: 3990, twd: 1290 },
-      "465185": { name: "女裝 AIRism 抗UV 網眼連帽外套", jpy: 2990, twd: 990 },
-      "461656": { name: "柔軟舒芙蕾短版開襟外套", jpy: 3990, twd: 1290 },
-      // 發熱衣系列 (HEATTECH)
-      "467140": { name: "男裝 極暖 EXTRA WARM 棉質圓領T恤", jpy: 1990, twd: 790 },
-      "467141": { name: "男裝 極暖 EXTRA WARM 棉質九分褲", jpy: 1990, twd: 790 },
-      "467139": { name: "女裝 極暖 EXTRA WARM 棉質圓領T恤", jpy: 1990, twd: 790 },
-      "460321": { name: "男裝 HEATTECH 吸濕發熱圓領T恤 (薄款)", jpy: 1290, twd: 390 },
-      "460322": { name: "男裝 超極暖 ULTRA WARM 發熱圓領T恤", jpy: 2990, twd: 990 },
-      "460323": { name: "男裝 超極暖 ULTRA WARM 發熱緊身褲", jpy: 2990, twd: 990 },
-      // 神褲與下身系列
-      "470549": { name: "男裝 寬版卡其長褲 (Uniqlo U 系列神褲)", jpy: 3990, twd: 1290 },
-      "464851": { name: "男女通用 降落傘工裝寬褲", jpy: 3990, twd: 1290 },
-      "464886": { name: "男女通用 打褶寬褲", jpy: 3990, twd: 1290 },
-      "463990": { name: "男裝 ULTRA STRETCH 特級彈性牛仔褲", jpy: 4990, twd: 1490 },
-      "460558": { name: "女裝 寬版直筒牛仔褲", jpy: 4990, twd: 1490 },
-      // 包包與配件
-      "453758": { name: "半月弧形迷你肩背包 (餃子包)", jpy: 1500, twd: 390 },
-      "464433": { name: "HEATTECH 保暖針織手套 / 圍巾", jpy: 1500, twd: 390 }
+    let state = {
+      currentView: 'home', // 'home' | 'spots' | 'itinerary'
+      currentDay: 1,       // 1 ~ 11
+      favorites: new Set(),
+      searchQuery: '',
+      filterRegion: 'all',
+      filterCategory: 'all',
+      onlyFavSpots: false,
+      onlyFavItinerary: false
     };
 
-    function lookupProductCode(code) {
-      const cleanCode = (code || "").toString().trim().replace(/[^0-9]/g, "");
-      const msgBox = document.getElementById("uqSearchMsg");
-      
-      if (!cleanCode) {
-        if (msgBox) {
-          msgBox.textContent = "請輸入 6 位數字商品編號";
-          msgBox.className = "text-[11px] text-[#b83b26] mt-1.5 font-medium";
-          msgBox.classList.remove("hidden");
+    // 初始化載入 LocalStorage 收藏紀錄
+    function loadSavedFavorites() {
+      try {
+        const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
+        if (saved) {
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr)) {
+            state.favorites = new Set(arr);
+          }
         }
-        return;
+      } catch (e) {
+        console.warn("無法讀取收藏紀錄", e);
       }
+      updateFavBadges();
+    }
 
-      // 生成台日 UNIQLO 官方即時搜尋與驗證網址
-      if (uqDirectLinks && uqLinkTw && uqLinkJp) {
-        uqLinkTw.href = `https://www.uniqlo.com/tw/zh_TW/search.html?description=${cleanCode}`;
-        uqLinkJp.href = `https://www.uniqlo.com/jp/ja/products/E${cleanCode}-000/00`;
-        uqDirectLinks.classList.remove("hidden");
+    function saveFavorites() {
+      try {
+        localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify([...state.favorites]));
+      } catch (e) {
+        console.error("無法寫入收藏紀錄", e);
       }
+      updateFavBadges();
+    }
 
-      // 比對核實資料庫
-      if (UNIQ_CODE_DATABASE[cleanCode]) {
-        const item = UNIQ_CODE_DATABASE[cleanCode];
-        if (uqItemName) uqItemName.value = item.name;
-        if (uqJpyPrice) uqJpyPrice.value = item.jpy;
-        if (uqTwdPrice) uqTwdPrice.value = item.twd;
-        if (msgBox) {
-          msgBox.innerHTML = `✓ 已載入官方核實定價：<span class="font-bold">${item.name}</span> (台 NT$${item.twd} ｜ 日 ¥${item.jpy})。若現場有特價，請點擊下方官網連結核對並手動修改。`;
-          msgBox.className = "text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 mt-1.5 font-medium";
-          msgBox.classList.remove("hidden");
-        }
+    function toggleFavorite(spotId, event) {
+      if (event) event.stopPropagation();
+      if (state.favorites.has(spotId)) {
+        state.favorites.delete(spotId);
       } else {
-        if (msgBox) {
-          msgBox.innerHTML = `⚠️ 商品編號 #${cleanCode} 請點擊下方「🇹🇼 台灣官網現價」與「🇯🇵 日本官網現價」直接查看最新牌價，並填入上方欄位即可自動精算！`;
-          msgBox.className = "text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-1.5 font-medium";
-          msgBox.classList.remove("hidden");
+        state.favorites.add(spotId);
+      }
+      saveFavorites();
+      // 即時重新渲染受影響元件
+      renderSpotsGrid();
+      renderItineraryDay();
+      renderHomeFeaturedSpots();
+      updateModalFavBtn(spotId);
+    }
+
+    function updateFavBadges() {
+      const count = state.favorites.size;
+      const countBadge = document.getElementById("favCountBadge");
+      const mobileBadge = document.getElementById("mobileFavBadge");
+      const spotsFavText = document.getElementById("spotsFavCountText");
+
+      if (countBadge) countBadge.textContent = count;
+      if (mobileBadge) mobileBadge.textContent = count;
+      if (spotsFavText) spotsFavText.textContent = count;
+    }
+
+    /* -------------------------------------------------------------
+       3. SPA 視圖切換 (View Routing)
+       ------------------------------------------------------------- */
+    function navigateView(viewName) {
+      state.currentView = viewName;
+
+      // 隱藏全部視圖
+      document.getElementById("viewHome").classList.add("hidden");
+      document.getElementById("viewSpots").classList.add("hidden");
+      document.getElementById("viewItinerary").classList.add("hidden");
+
+      // 桌面導航按鈕樣式更新
+      document.querySelectorAll(".nav-desktop-btn").forEach(btn => {
+        if (btn.dataset.nav === viewName) {
+          btn.className = "nav-desktop-btn px-3.5 py-1.5 rounded-lg text-sm font-bold bg-rurikon text-white transition";
+        } else {
+          btn.className = "nav-desktop-btn px-3.5 py-1.5 rounded-lg text-sm font-semibold text-stone-600 hover:text-stone-900 hover:bg-[#ede5d3] transition";
         }
+      });
+
+      // 行動底部導航按鈕樣式更新
+      document.querySelectorAll(".mobile-nav-btn").forEach(btn => {
+        const isTarget = btn.dataset.nav === viewName;
+        if (btn.dataset.nav === 'itinerary') {
+          // 行程入口為凸起圓形按鈕
+          btn.querySelector("div").className = isTarget 
+            ? "w-10 h-10 -mt-4 bg-akane rounded-full flex items-center justify-center text-white shadow-md border-2 border-white scale-105 transition-transform"
+            : "w-10 h-10 -mt-4 bg-stone-700 rounded-full flex items-center justify-center text-white shadow-sm border-2 border-[#f7f4ee]";
+        } else {
+          btn.className = isTarget 
+            ? "mobile-nav-btn flex flex-col items-center justify-center py-1 text-akane font-bold transition cursor-pointer"
+            : "mobile-nav-btn flex flex-col items-center justify-center py-1 text-stone-500 transition cursor-pointer";
+        }
+      });
+
+      // 顯示目標視圖
+      if (viewName === 'home') {
+        document.getElementById("viewHome").classList.remove("hidden");
+      } else if (viewName === 'spots') {
+        document.getElementById("viewSpots").classList.remove("hidden");
+        renderSpotsGrid();
+      } else if (viewName === 'itinerary') {
+        document.getElementById("viewItinerary").classList.remove("hidden");
+        renderItineraryDay();
       }
 
-      calculateUniqlo();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 點擊頂部或底部的「我的收藏」快速過濾
+    function toggleFavFilterFromHeader() {
+      state.onlyFavSpots = true;
+      const toggle = document.getElementById("onlyFavSpotsToggle");
+      if (toggle) toggle.checked = true;
+      navigateView('spots');
+    }
+
+    function openFavoritesView() {
+      toggleFavFilterFromHeader();
+    }
+
+    /* -------------------------------------------------------------
+       4. 首頁 (Home View) 渲染
+       ------------------------------------------------------------- */
+    function renderHomeShortcuts() {
+      const container = document.getElementById("homeDayShortcuts");
+      if (!container) return;
+      container.innerHTML = "";
+
+      TRIP_DAYS.forEach(d => {
+        const btn = document.createElement("button");
+        btn.className = "flex flex-col text-left p-3 rounded-2xl bg-white border border-[#ded5c2] hover:border-akane hover:shadow-xs transition group cursor-pointer";
+        btn.innerHTML = `
+          <div class="flex items-center justify-between w-full mb-1">
+            <span class="text-xs font-black text-akane group-hover:underline">DAY ${d.day}</span>
+            <span class="text-[10px] text-stone-400 font-medium">${d.date.split(" ")[0].slice(5)}</span>
+          </div>
+          <div class="text-xs font-bold text-stone-800 line-clamp-1 group-hover:text-akane transition">
+            ${d.title.split("→")[0]}
+          </div>
+          <div class="text-[10px] text-stone-500 line-clamp-1 mt-0.5">
+            ${d.summary}
+          </div>
+        `;
+        btn.addEventListener("click", () => {
+          state.currentDay = d.day;
+          navigateView('itinerary');
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function renderHomeFeaturedSpots() {
+      const container = document.getElementById("homeFeaturedSpots");
+      if (!container) return;
+      container.innerHTML = "";
+
+      // 挑選具代表性的 3 個景點
+      const featured = SPOTS_DATABASE.slice(0, 3);
+      featured.forEach(spot => {
+        const isFav = state.favorites.has(spot.id);
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-2xl overflow-hidden border border-[#ded5c2] shadow-2xs hover:shadow-sm transition cursor-pointer flex flex-col";
+        card.innerHTML = `
+          <div class="relative h-40 w-full overflow-hidden bg-stone-100">
+            <img src="${spot.img}" alt="${spot.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy">
+            <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-stone-900/80 text-white text-[10px] font-bold">
+              ${spot.region}
+            </span>
+            <button 
+              onclick="toggleFavorite('${spot.id}', event)" 
+              class="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 text-stone-700 hover:text-akane flex items-center justify-center shadow-xs transition"
+              aria-label="${isFav ? '取消收藏' : '加入收藏'}"
+            >
+              <i data-lucide="heart" class="w-4 h-4 ${isFav ? 'text-akane fill-akane' : ''}"></i>
+            </button>
+          </div>
+          <div class="p-3.5 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="text-[11px] font-bold text-akane mb-0.5">DAY ${spot.day} 行程重點</div>
+              <h3 class="font-bold text-stone-900 text-sm font-serif">${spot.name}</h3>
+              <p class="text-xs text-stone-500 mt-1 line-clamp-2 leading-relaxed">${spot.desc}</p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-[#eee7d8] flex items-center justify-between text-[11px] text-stone-500">
+              <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3 text-akane"></i> ${spot.duration}</span>
+              <span class="text-rurikon font-semibold flex items-center gap-0.5">查看詳情 <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
+            </div>
+          </div>
+        `;
+        card.addEventListener("click", () => openSpotModal(spot));
+        container.appendChild(card);
+      });
+
       if (window.lucide) lucide.createIcons();
     }
 
-    window.setUqByCode = function(code) {
-      if (uqProductCodeInput) uqProductCodeInput.value = code;
-      lookupProductCode(code);
-    };
+    /* -------------------------------------------------------------
+       5. 景點探索 (Spot Explorer View) 搜尋與雙向篩選
+       ------------------------------------------------------------- */
+    function setupSpotFilters() {
+      // 關鍵字搜尋監聽
+      const searchInput = document.getElementById("spotSearchInput");
+      const clearBtn = document.getElementById("clearSearchBtn");
 
-    if (uqSearchCodeBtn && uqProductCodeInput) {
-      uqSearchCodeBtn.addEventListener("click", () => {
-        lookupProductCode(uqProductCodeInput.value);
-      });
-      uqProductCodeInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          lookupProductCode(uqProductCodeInput.value);
-        }
-      });
-      uqProductCodeInput.addEventListener("input", () => {
-        const val = uqProductCodeInput.value.trim();
-        if (val.length === 6) {
-          lookupProductCode(val);
-        }
-      });
-    }
-
-    function calculateUniqlo() {
-      if (!uqJpyPrice || !uqTwdPrice) return;
-      const rawJpy = parseFloat(uqJpyPrice.value) || 0;
-      const twdPrice = parseFloat(uqTwdPrice.value) || 0;
-      const isTaxFree = uqTaxFreeCheck ? uqTaxFreeCheck.checked : true;
-
-      // 日本 Uniqlo 定價含 10% 消費稅，退稅時除以 1.1 取未稅價
-      const finalJpy = isTaxFree ? Math.round(rawJpy / 1.1) : rawJpy;
-      const actualTwd = Math.round(finalJpy * currentJpyTwdRate);
-      const diffTwd = twdPrice - actualTwd;
-
-      if (uqTaxFreeStatusBadge) {
-        uqTaxFreeStatusBadge.textContent = isTaxFree ? "已扣除 10% 免稅" : "含稅計算 (未退稅)";
-        uqTaxFreeStatusBadge.className = isTaxFree 
-          ? "bg-emerald-600/90 text-white px-2 py-0.5 rounded text-[10px] font-bold" 
-          : "bg-amber-600/90 text-white px-2 py-0.5 rounded text-[10px] font-bold";
+      if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+          state.searchQuery = e.target.value.trim().toLowerCase();
+          if (clearBtn) {
+            clearBtn.classList.toggle("hidden", state.searchQuery.length === 0);
+          }
+          renderSpotsGrid();
+        });
       }
 
-      uqActualTwd.textContent = `NT$ ${actualTwd.toLocaleString()}`;
-      uqJpyCalcDesc.textContent = isTaxFree ? `¥${finalJpy.toLocaleString()} (未稅價)` : `¥${finalJpy.toLocaleString()} (含稅價)`;
-      uqTwOriginal.textContent = `NT$ ${twdPrice.toLocaleString()}`;
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          if (searchInput) {
+            searchInput.value = "";
+            state.searchQuery = "";
+            clearBtn.classList.add("hidden");
+            renderSpotsGrid();
+            searchInput.focus();
+          }
+        });
+      }
 
-      if (diffTwd > 0) {
-        uqSavingsTwd.textContent = `NT$ ${diffTwd.toLocaleString()}`;
-        uqSavingsTwd.className = "text-lg font-black text-emerald-400";
-        const discountFold = (actualTwd / twdPrice) * 10;
-        uqDiscountRate.textContent = `相當於台灣 ${discountFold.toFixed(1)} 折！`;
-        uqDiscountRate.className = "text-xs font-black bg-[#b83b26] text-amber-100 px-2.5 py-1 rounded-full";
-      } else if (diffTwd === 0) {
-        uqSavingsTwd.textContent = `NT$ 0`;
-        uqSavingsTwd.className = "text-lg font-black text-stone-300";
-        uqDiscountRate.textContent = "價格相當";
-        uqDiscountRate.className = "text-xs font-black bg-stone-600 text-stone-200 px-2.5 py-1 rounded-full";
-      } else {
-        uqSavingsTwd.textContent = `貴 NT$ ${Math.abs(diffTwd).toLocaleString()}`;
-        uqSavingsTwd.className = "text-lg font-black text-red-400";
-        uqDiscountRate.textContent = "台灣買較划算";
-        uqDiscountRate.className = "text-xs font-black bg-stone-700 text-stone-300 px-2.5 py-1 rounded-full";
+      // 區域切換標籤
+      document.querySelectorAll(".filter-region-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.filterRegion = btn.dataset.region;
+          document.querySelectorAll(".filter-region-btn").forEach(b => {
+            if (b.dataset.region === state.filterRegion) {
+              b.className = "filter-region-btn px-3 py-1 rounded-lg bg-rurikon text-white font-bold transition";
+            } else {
+              b.className = "filter-region-btn px-3 py-1 rounded-lg bg-torinoko text-stone-700 hover:bg-[#ded5c2] transition";
+            }
+          });
+          renderSpotsGrid();
+        });
+      });
+
+      // 類型切換標籤
+      document.querySelectorAll(".filter-cat-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.filterCategory = btn.dataset.category;
+          document.querySelectorAll(".filter-cat-btn").forEach(b => {
+            if (b.dataset.category === state.filterCategory) {
+              b.className = "filter-cat-btn px-2.5 py-1 rounded-md bg-stone-800 text-white font-medium text-[11px]";
+            } else {
+              b.className = "filter-cat-btn px-2.5 py-1 rounded-md bg-torinoko text-stone-600 hover:bg-[#ded5c2] text-[11px]";
+            }
+          });
+          renderSpotsGrid();
+        });
+      });
+
+      // 僅顯示已收藏開關
+      const favToggle = document.getElementById("onlyFavSpotsToggle");
+      if (favToggle) {
+        favToggle.addEventListener("change", (e) => {
+          state.onlyFavSpots = e.target.checked;
+          renderSpotsGrid();
+        });
+      }
+
+      const resetBtn = document.getElementById("resetSpotFiltersBtn");
+      if (resetBtn) {
+        resetBtn.addEventListener("click", resetAllSpotFilters);
       }
     }
 
-    window.setUqPreset = function(name, jpy, twd) {
-      if (uqItemName) uqItemName.value = name;
-      if (uqJpyPrice) uqJpyPrice.value = jpy;
-      if (uqTwdPrice) uqTwdPrice.value = twd;
-      calculateUniqlo();
-    };
+    function resetAllSpotFilters() {
+      state.searchQuery = '';
+      state.filterRegion = 'all';
+      state.filterCategory = 'all';
+      state.onlyFavSpots = false;
 
-    if (uqJpyPrice) uqJpyPrice.addEventListener("input", calculateUniqlo);
-    if (uqTwdPrice) uqTwdPrice.addEventListener("input", calculateUniqlo);
-    if (uqTaxFreeCheck) uqTaxFreeCheck.addEventListener("change", calculateUniqlo);
+      const searchInput = document.getElementById("spotSearchInput");
+      const clearBtn = document.getElementById("clearSearchBtn");
+      const favToggle = document.getElementById("onlyFavSpotsToggle");
 
-    function renderUqSavedList() {
-      if (!uqSavedItems) return;
-      uqSavedItems.innerHTML = "";
-      let totalSaved = 0;
+      if (searchInput) searchInput.value = '';
+      if (clearBtn) clearBtn.classList.add("hidden");
+      if (favToggle) favToggle.checked = false;
 
-      if (uqSavedList.length === 0) {
-        uqSavedItems.innerHTML = `<div class="text-[11px] text-stone-400 italic text-center py-2">尚未加入任何比價商品</div>`;
+      document.querySelectorAll(".filter-region-btn").forEach(b => {
+        b.className = b.dataset.region === 'all' 
+          ? "filter-region-btn px-3 py-1 rounded-lg bg-rurikon text-white font-bold transition"
+          : "filter-region-btn px-3 py-1 rounded-lg bg-torinoko text-stone-700 hover:bg-[#ded5c2] transition";
+      });
+
+      document.querySelectorAll(".filter-cat-btn").forEach(b => {
+        b.className = b.dataset.category === 'all'
+          ? "filter-cat-btn px-2.5 py-1 rounded-md bg-stone-800 text-white font-medium text-[11px]"
+          : "filter-cat-btn px-2.5 py-1 rounded-md bg-torinoko text-stone-600 hover:bg-[#ded5c2] text-[11px]";
+      });
+
+      renderSpotsGrid();
+    }
+
+    function renderSpotsGrid() {
+      const grid = document.getElementById("spotsGrid");
+      const emptyState = document.getElementById("spotsEmptyState");
+      const matchCountSpan = document.getElementById("spotMatchCount");
+      const resetBtn = document.getElementById("resetSpotFiltersBtn");
+      if (!grid) return;
+
+      // 多維度過濾
+      const filtered = SPOTS_DATABASE.filter(spot => {
+        // 1. 關鍵字搜尋 (支援名稱、區域、交通與美食)
+        if (state.searchQuery) {
+          const combined = `${spot.name} ${spot.region} ${spot.desc} ${spot.transit} ${spot.foods}`.toLowerCase();
+          if (!combined.includes(state.searchQuery)) return false;
+        }
+        // 2. 區域過濾
+        if (state.filterRegion !== 'all' && spot.region !== state.filterRegion) {
+          return false;
+        }
+        // 3. 類型過濾
+        if (state.filterCategory !== 'all' && spot.category !== state.filterCategory) {
+          return false;
+        }
+        // 4. 僅顯示收藏
+        if (state.onlyFavSpots && !state.favorites.has(spot.id)) {
+          return false;
+        }
+        return true;
+      });
+
+      if (matchCountSpan) matchCountSpan.textContent = filtered.length;
+
+      // 是否顯示重設按鈕
+      const isFiltered = state.searchQuery || state.filterRegion !== 'all' || state.filterCategory !== 'all' || state.onlyFavSpots;
+      if (resetBtn) resetBtn.classList.toggle("hidden", !isFiltered);
+
+      grid.innerHTML = "";
+
+      if (filtered.length === 0) {
+        if (emptyState) emptyState.classList.remove("hidden");
       } else {
-        uqSavedList.forEach((item, idx) => {
-          totalSaved += item.saved;
-          const row = document.createElement("div");
-          row.className = "flex items-center justify-between p-2 rounded-xl bg-white border border-[#ded5c2] text-xs";
-          row.innerHTML = `
-            <div class="min-w-0 pr-2">
-              <div class="font-bold text-stone-800 truncate">${item.name || 'UQ單品'}</div>
-              <div class="text-[10px] text-stone-500">日 ¥${item.jpy} (約 NT$${item.actualTwd}) ↔ 台 NT$${item.twPrice}</div>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="font-bold ${item.saved > 0 ? 'text-emerald-700' : 'text-stone-500'}">省 NT$${item.saved.toLocaleString()}</span>
-              <button onclick="deleteUqSavedItem(${idx})" class="text-stone-400 hover:text-red-700 p-1">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        if (emptyState) emptyState.classList.add("hidden");
+        filtered.forEach(spot => {
+          const isFav = state.favorites.has(spot.id);
+          const card = document.createElement("div");
+          card.className = "bg-white rounded-2xl overflow-hidden border border-[#ded5c2] shadow-2xs hover:shadow-sm transition flex flex-col cursor-pointer";
+          
+          card.innerHTML = `
+            <div class="relative h-44 w-full bg-stone-100 overflow-hidden">
+              <img src="${spot.img}" alt="${spot.name}" class="w-full h-full object-cover" loading="lazy">
+              <div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded-md bg-stone-900/85 text-white text-[10px] font-bold">
+                  ${spot.region}
+                </span>
+                <span class="px-2 py-0.5 rounded-md bg-white/90 text-stone-800 text-[10px] font-bold">
+                  ${spot.category}
+                </span>
+              </div>
+              <button 
+                onclick="toggleFavorite('${spot.id}', event)" 
+                class="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-stone-700 flex items-center justify-center shadow-xs transition"
+                aria-label="${isFav ? '取消收藏' : '加入收藏'}"
+              >
+                <i data-lucide="heart" class="w-4 h-4 ${isFav ? 'text-akane fill-akane' : ''}"></i>
               </button>
+            </div>
+            
+            <div class="p-3.5 flex-1 flex flex-col justify-between space-y-2.5">
+              <div>
+                <div class="flex items-center justify-between text-[11px] mb-0.5">
+                  <span class="text-akane font-bold">DAY ${spot.day}</span>
+                  <span class="text-stone-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3 text-akane"></i> ${spot.duration}</span>
+                </div>
+                <h3 class="font-bold text-stone-900 text-base font-serif">${spot.name}</h3>
+                <p class="text-xs text-stone-600 line-clamp-2 mt-1 leading-relaxed">${spot.desc}</p>
+              </div>
+
+              <!-- 大眾交通與點擊展開提示 -->
+              <div class="pt-2 border-t border-[#eee7d8] space-y-1.5 text-[11px]">
+                <div class="text-stone-600 flex items-start gap-1">
+                  <i data-lucide="bus" class="w-3.5 h-3.5 text-rurikon shrink-0 mt-0.5"></i>
+                  <span class="line-clamp-1">${spot.transit}</span>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <span class="text-[10px] text-stone-400">營業：${spot.hours.split(" ")[0]}</span>
+                  <span class="text-xs font-bold text-akane flex items-center gap-0.5">詳細指引 <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                </div>
+              </div>
             </div>
           `;
-          uqSavedItems.appendChild(row);
+          card.addEventListener("click", () => openSpotModal(spot));
+          grid.appendChild(card);
         });
       }
-
-      if (uqTotalSavedBanner) {
-        uqTotalSavedBanner.textContent = `總共省下 NT$ ${totalSaved.toLocaleString()}`;
-      }
-
-      try {
-        localStorage.setItem(UQ_SAVED_KEY, JSON.stringify(uqSavedList));
-      } catch(e) {}
 
       if (window.lucide) lucide.createIcons();
     }
 
-    window.deleteUqSavedItem = function(idx) {
-      uqSavedList.splice(idx, 1);
-      renderUqSavedList();
-    };
+    /* -------------------------------------------------------------
+       6. 11 日行程 (Itinerary View) 時序路線渲染
+       ------------------------------------------------------------- */
+    function setupItineraryTabs() {
+      const container = document.getElementById("itineraryDayTabs");
+      if (!container) return;
+      container.innerHTML = "";
 
-    if (uqAddToListBtn) {
-      uqAddToListBtn.addEventListener("click", () => {
-        const rawJpy = parseFloat(uqJpyPrice.value) || 0;
-        const twdPrice = parseFloat(uqTwdPrice.value) || 0;
-        const isTaxFree = uqTaxFreeCheck ? uqTaxFreeCheck.checked : true;
-        const finalJpy = isTaxFree ? Math.round(rawJpy / 1.1) : rawJpy;
-        const actualTwd = Math.round(finalJpy * currentJpyTwdRate);
-        const saved = twdPrice - actualTwd;
-
-        uqSavedList.push({
-          name: uqItemName.value.trim() || `單品 (¥${rawJpy})`,
-          jpy: rawJpy,
-          twPrice: twdPrice,
-          actualTwd: actualTwd,
-          saved: saved
-        });
-
-        renderUqSavedList();
-      });
-    }
-
-    if (refreshRateBtn) {
-      refreshRateBtn.addEventListener("click", () => {
-        fetchLiveExchangeRate();
-      });
-    }
-
-    function renderExpenses() {
-      let total = 0;
-      expenseList.innerHTML = "";
-      expenses.forEach((item, idx) => {
-        total += item.amount;
-        const row = document.createElement("div");
-        row.className = "flex items-center justify-between p-2 rounded-xl bg-white border border-[#ded5c2] text-xs";
-        row.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-stone-800">${item.title}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-[#b83b26]">¥${item.amount.toLocaleString()}</span>
-            <button data-del-exp="${idx}" class="text-stone-400 hover:text-red-700 p-1">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        `;
-        expenseList.appendChild(row);
-      });
-
-      const perPerson = Math.round(total / 8);
-      const perPersonNT = Math.round(perPerson * currentJpyTwdRate);
-
-      totalExpenseJPY.textContent = `¥${total.toLocaleString()}`;
-      perPersonJPY.textContent = `¥${perPerson.toLocaleString()}`;
-      perPersonTWD.textContent = `NT$ ${perPersonNT.toLocaleString()}`;
-
-      try {
-        localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
-      } catch(e) {}
-
-      if (window.lucide) lucide.createIcons();
-    }
-
-    expenseForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const title = expenseItem.value.trim();
-      const amount = parseFloat(expenseAmount.value);
-      if (title && !isNaN(amount) && amount > 0) {
-        expenses.push({ title, amount });
-        expenseItem.value = "";
-        expenseAmount.value = "";
-        renderExpenses();
-      }
-    });
-
-    // 地圖與標記初始化
-    function initMap() {
-      if (mapInstance) return;
-      const mapContainer = document.getElementById("itineraryMap");
-      if (!mapContainer) return;
-      mapInstance = L.map("itineraryMap", { zoomControl: true }).setView([33.8875, 130.8825], 11);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 18
-      }).addTo(mapInstance);
-      mapMarkersLayer = L.layerGroup().addTo(mapInstance);
-    }
-
-    // 儲存資料
-    function saveData() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(itineraryData));
-      } catch (e) {
-        console.error("Save error", e);
-      }
-    }
-
-    // 格式化美食卡片 HTML
-    function parseFoodsHtml(foodsText, spotCity) {
-      if (!foodsText || !foodsText.trim()) {
-        return '<p class="text-[11px] text-stone-400 italic">周邊 1km 內暫無特定標註美食</p>';
-      }
-
-      const lines = foodsText.split(/([①②③④⑤⑥⑦⑧⑨⑩])/g).filter(s => s.trim().length > 0);
-      let items = [];
-      for (let i = 0; i < lines.length; i++) {
-        if (/^[①②③④⑤⑥⑦⑧⑨⑩]$/.test(lines[i])) {
-          const num = lines[i];
-          const text = (lines[i + 1] || "").trim();
-          items.push({ num, text });
-          i++;
-        } else {
-          items.push({ num: "•", text: lines[i].trim() });
-        }
-      }
-
-      return items.map(item => {
-        let storeName = item.text.split(/（|\(|，|,| /)[0] || item.text;
-        storeName = storeName.replace(/^[①②③④⑤⑥⑦⑧⑨⑩\s]+/, '').trim();
-        const searchKeyword = encodeURIComponent(`${storeName} ${spotCity || ""}`);
-        return `
-          <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/80 border border-[#dfd4c0] text-[11px] leading-tight">
-            <div class="flex items-start gap-1.5 min-w-0">
-              <span class="text-[#b83b26] font-bold shrink-0">${item.num}</span>
-              <span class="text-stone-800 break-words">${item.text}</span>
-            </div>
-            <button 
-              type="button"
-              onclick="event.stopPropagation(); window.open('https://www.google.com/maps/search/?api=1&query=${searchKeyword}', '_blank');"
-              class="shrink-0 px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-amber-50 rounded-lg text-[10px] font-bold flex items-center gap-1 shadow-2xs">
-              <i data-lucide="utensils" class="w-3 h-3"></i> 導航
-            </button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // 渲染卡片與地圖
-    function renderDayView() {
-      const currentDay = itineraryData[currentDayIndex];
-      if (!currentDay) return;
-
-      dayBadge.textContent = `DAY ${currentDay.day}`;
-      dayDate.textContent = currentDay.date;
-      dayTitle.textContent = currentDay.title;
-      dayNotes.textContent = currentDay.summary;
-      spotName.textContent = currentDay.spotName || "當日精華";
-      
-      const stops = currentDay.stops || [];
-      stopCountBadge.textContent = `${stops.length} 個行程點`;
-
-      // 渲染天數橫滑導覽列
-      dayNavList.innerHTML = "";
-      itineraryData.forEach((d, idx) => {
+      TRIP_DAYS.forEach(d => {
         const btn = document.createElement("button");
-        const isActive = idx === currentDayIndex;
-        btn.className = `shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1 ${
-          isActive 
-            ? "bg-[#b83b26] text-amber-50 shadow-sm border border-[#9b2f1d]" 
-            : "bg-[#eae3d2] text-stone-700 hover:bg-[#ded5c2] border border-[#d6cbb5]"
-        }`;
-        btn.innerHTML = `<span>D${d.day}</span><span class="text-[10px] opacity-80">${d.date.split(" ")[0].slice(5)}</span>`;
+        const isActive = d.day === state.currentDay;
+        btn.className = isActive 
+          ? "shrink-0 px-3 py-1.5 rounded-xl bg-akane text-white font-bold text-xs shadow-xs transition cursor-pointer"
+          : "shrink-0 px-3 py-1.5 rounded-xl bg-torinoko text-stone-700 hover:bg-[#ded5c2] font-semibold text-xs border border-[#ded5c2] transition cursor-pointer";
+        btn.innerHTML = `<span>D${d.day}</span> <span class="text-[10px] opacity-80">${d.date.split(" ")[0].slice(5)}</span>`;
+        
         btn.addEventListener("click", () => {
-          currentDayIndex = idx;
-          renderAll();
-          btn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+          state.currentDay = d.day;
+          setupItineraryTabs();
+          renderItineraryDay();
+          btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         });
-        dayNavList.appendChild(btn);
+        container.appendChild(btn);
       });
 
-      // 渲染行程卡片列表
-      mobileCardsContainer.innerHTML = "";
-      if (stops.length === 0) {
-        emptyState.classList.remove("hidden");
-      } else {
-        emptyState.classList.add("hidden");
-        stops.forEach((stop, idx) => {
-          const card = document.createElement("div");
-          card.className = "bg-[#fcfaf7] rounded-2xl p-4 border border-[#ded5c2] shadow-xs transition hover:border-[#c5b9a0] cursor-pointer hover:shadow-sm";
-          card.dataset.cardIndex = idx;
-          
-          let navBtnHtml = "";
-          if (stop.lat && stop.lng) {
-            const destQuery = `${stop.lat},${stop.lng}`;
-            navBtnHtml = `
-              <button 
-                type="button"
-                data-action="navigate" 
-                data-dest="${destQuery}"
-                class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-amber-50 rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs transition">
-                <i data-lucide="navigation" class="w-3.5 h-3.5"></i> 導航
-              </button>
-            `;
-          }
+      // 綁定行程頁「僅顯示已收藏」按鈕
+      const toggleFavBtn = document.getElementById("toggleItineraryFavsBtn");
+      if (toggleFavBtn) {
+        toggleFavBtn.onclick = () => {
+          state.onlyFavItinerary = !state.onlyFavItinerary;
+          renderItineraryDay();
+        };
+      }
+    }
 
-          const foodsHtml = parseFoodsHtml(stop.foods, currentDay.title);
+    function toggleItineraryFavFilter(forceState) {
+      state.onlyFavItinerary = typeof forceState === 'boolean' ? forceState : !state.onlyFavItinerary;
+      renderItineraryDay();
+    }
+
+    function renderItineraryDay() {
+      const dayData = TRIP_DAYS.find(d => d.day === state.currentDay) || TRIP_DAYS[0];
+
+      // 更新頂部 Header
+      const badge = document.getElementById("dayHeaderBadge");
+      const date = document.getElementById("dayHeaderDate");
+      const title = document.getElementById("dayHeaderTitle");
+      const summary = document.getElementById("dayHeaderSummary");
+      const favBtnText = document.getElementById("itineraryFavBtnText");
+
+      if (badge) badge.textContent = `DAY ${dayData.day}`;
+      if (date) date.textContent = dayData.date;
+      if (title) title.textContent = dayData.title;
+      if (summary) summary.textContent = dayData.summary;
+
+      if (favBtnText) {
+        favBtnText.textContent = state.onlyFavItinerary ? "顯示本日全部行程" : "僅顯示本日已收藏";
+      }
+
+      // 篩選屬於該天的景點列表
+      let spotsForDay = SPOTS_DATABASE.filter(s => s.day === dayData.day);
+
+      // 若啟用了只看收藏
+      if (state.onlyFavItinerary) {
+        spotsForDay = spotsForDay.filter(s => state.favorites.has(s.id));
+      }
+
+      const listContainer = document.getElementById("itineraryTimelineList");
+      const favEmpty = document.getElementById("itineraryFavEmptyState");
+      if (!listContainer) return;
+
+      listContainer.innerHTML = "";
+
+      if (spotsForDay.length === 0) {
+        if (favEmpty) favEmpty.classList.remove("hidden");
+      } else {
+        if (favEmpty) favEmpty.classList.add("hidden");
+
+        spotsForDay.forEach((spot, idx) => {
+          const isFav = state.favorites.has(spot.id);
+          const card = document.createElement("div");
+          card.className = "bg-white rounded-2xl p-4 sm:p-5 border border-[#ded5c2] shadow-2xs hover:shadow-xs transition flex flex-col md:flex-row gap-4";
 
           card.innerHTML = `
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <div class="flex items-start gap-2.5">
-                <span class="w-6 h-6 rounded-full bg-[#1e2f47] text-amber-50 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5 shadow-2xs">
-                  ${idx + 1}
-                </span>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-[#b83b26] font-mono">${stop.time}</span>
-                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-[#eee5d3] text-stone-700 font-medium">停留 ${stop.duration}</span>
-                  </div>
-                  <h3 class="text-sm sm:text-base font-bold text-stone-900 mt-0.5 font-wafu">${stop.name}</h3>
-                </div>
+            <!-- 左側照片與編號 -->
+            <div class="relative w-full md:w-48 h-36 md:h-auto rounded-xl overflow-hidden shrink-0 bg-stone-100">
+              <img src="${spot.img}" alt="${spot.name}" class="w-full h-full object-cover" loading="lazy">
+              <div class="absolute top-2 left-2 w-6 h-6 rounded-full bg-rurikon text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                ${idx + 1}
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                ${navBtnHtml}
-                <button data-action="locate" data-index="${idx}" class="p-1.5 border border-[#ded5c2] text-stone-600 hover:text-stone-900 hover:bg-[#ede5d3] rounded-xl text-xs" title="地圖定位">
-                  <i data-lucide="map-pin" class="w-3.5 h-3.5 text-[#1e2f47]"></i>
-                </button>
-                <button data-action="edit" data-index="${idx}" class="p-1.5 border border-[#ded5c2] text-stone-600 hover:text-stone-900 hover:bg-[#ede5d3] rounded-xl text-xs" title="編輯">
-                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                </button>
-                <button data-action="delete" data-index="${idx}" class="p-1.5 border border-[#ded5c2] text-stone-400 hover:text-red-700 hover:bg-[#ede5d3] rounded-xl text-xs" title="刪除">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
+              <button 
+                onclick="toggleFavorite('${spot.id}', event)" 
+                class="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 text-stone-700 hover:text-akane flex items-center justify-center shadow-xs transition"
+                aria-label="${isFav ? '取消收藏' : '加入收藏'}"
+              >
+                <i data-lucide="heart" class="w-3.5 h-3.5 ${isFav ? 'text-akane fill-akane' : ''}"></i>
+              </button>
             </div>
 
-            <!-- 大眾交通與重點備註 -->
-            ${stop.notes ? `
-              <div class="mt-2.5 p-3 rounded-xl bg-[#f2ece0] border border-[#dfd4c0] text-xs leading-relaxed text-stone-700">
-                <div class="flex items-center gap-1.5 font-bold text-stone-900 mb-1">
-                  <i data-lucide="bus" class="w-3.5 h-3.5 text-[#b83b26]"></i> 大眾交通方式與備註
+            <!-- 右側時間軸與大眾交通指引 -->
+            <div class="flex-1 flex flex-col justify-between space-y-2.5">
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-akane font-mono">推薦停留：${spot.duration}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-torinoko text-stone-600 font-medium">${spot.category}</span>
+                  </div>
+                  <button onclick="openSpotModalById('${spot.id}')" class="text-xs font-bold text-rurikon hover:underline flex items-center gap-0.5">
+                    景點詳情 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                  </button>
                 </div>
-                <div class="text-[11px] leading-relaxed whitespace-pre-line">${stop.notes}</div>
+                <h3 class="text-base sm:text-lg font-bold text-stone-900 font-serif mt-1">${spot.name}</h3>
+                <p class="text-xs text-stone-600 leading-relaxed mt-1">${spot.desc}</p>
               </div>
-            ` : ''}
 
-            <!-- 1km 周邊美食推薦 (可摺疊收合設計) -->
-            <div class="mt-2.5 rounded-xl bg-[#faebe8]/70 border border-[#edd5d0] text-xs leading-relaxed text-stone-700 overflow-hidden">
-              <button 
-                type="button" 
-                onclick="event.stopPropagation(); const content = document.getElementById('food-collapse-${idx}'); const arrow = document.getElementById('food-arrow-${idx}'); content.classList.toggle('hidden'); arrow.classList.toggle('rotate-180');"
-                class="w-full flex items-center justify-between p-2.5 bg-[#faebe8]/90 hover:bg-[#f6ded9] transition cursor-pointer text-left">
-                <div class="flex items-center gap-1.5 font-bold text-[#b83b26]">
-                  <i data-lucide="utensils" class="w-3.5 h-3.5"></i> 走路 1km 內必吃名店＆特色小吃
+              <!-- 初訪者最重視：地鐵與大眾交通搭乘指南 -->
+              <div class="p-2.5 rounded-xl bg-torinoko border border-[#e5dcce] text-xs text-stone-700">
+                <div class="font-bold text-stone-900 mb-0.5 flex items-center gap-1 text-[11px]">
+                  <i data-lucide="subway" class="w-3 h-3 text-rurikon"></i> 大眾交通方式：
                 </div>
-                <div class="flex items-center gap-1.5 text-[10px] text-stone-500 font-normal">
-                  <span>點擊查看</span>
-                  <i id="food-arrow-${idx}" data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200"></i>
-                </div>
-              </button>
-              <div id="food-collapse-${idx}" class="hidden p-3 border-t border-[#edd5d0]/80 space-y-1.5">
-                <div class="text-[10px] text-stone-500 mb-1">精選 Tabelog 3.5+ / Google 4★ 必吃名店：</div>
-                ${foodsHtml}
+                <div class="text-[11px] leading-relaxed text-stone-600">${spot.transit}</div>
+              </div>
+
+              <!-- 走路 1km 美食 -->
+              <div class="text-[11px] text-stone-500 flex items-center gap-1.5">
+                <i data-lucide="utensils" class="w-3 h-3 text-akane shrink-0"></i>
+                <span class="font-bold text-stone-700 shrink-0">推薦美食：</span>
+                <span class="truncate">${spot.foods}</span>
               </div>
             </div>
           `;
-          mobileCardsContainer.appendChild(card);
+          listContainer.appendChild(card);
         });
       }
 
-      // 更新地圖標記與軌跡
-      updateMapMarkers(stops);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    /* -------------------------------------------------------------
+       7. 景點詳細彈窗 (Spot Modal) 與無障礙支援
+       ------------------------------------------------------------- */
+    let currentModalSpotId = null;
+
+    function openSpotModalById(id) {
+      const spot = SPOTS_DATABASE.find(s => s.id === id);
+      if (spot) openSpotModal(spot);
+    }
+
+    function openSpotModal(spot) {
+      currentModalSpotId = spot.id;
+      const modal = document.getElementById("spotDetailModal");
+      const img = document.getElementById("modalSpotImg");
+      const name = document.getElementById("modalSpotName");
+      const region = document.getElementById("modalSpotRegion");
+      const cat = document.getElementById("modalSpotCat");
+      const day = document.getElementById("modalSpotDay");
+      const desc = document.getElementById("modalSpotDesc");
+      const duration = document.getElementById("modalSpotDuration");
+      const hours = document.getElementById("modalSpotHours");
+      const transit = document.getElementById("modalSpotTransit");
+      const foods = document.getElementById("modalSpotFoods");
+      const navBtn = document.getElementById("modalNavBtn");
+
+      if (img) {
+        img.src = spot.img;
+        img.alt = spot.name;
+      }
+      if (name) name.textContent = spot.name;
+      if (region) region.textContent = spot.region;
+      if (cat) cat.textContent = spot.category;
+      if (day) day.textContent = `DAY ${spot.day} 行程`;
+      if (desc) desc.textContent = spot.desc;
+      if (duration) duration.textContent = spot.duration;
+      if (hours) hours.textContent = spot.hours;
+      if (transit) transit.textContent = spot.transit;
+      if (foods) foods.textContent = spot.foods;
+
+      if (navBtn) {
+        const query = encodeURIComponent(`${spot.name} 日本`);
+        navBtn.href = `https://www.google.com/maps/search/?api=1&query=${query}`;
+      }
+
+      updateModalFavBtn(spot.id);
+
+      const favBtn = document.getElementById("modalFavBtn");
+      if (favBtn) {
+        favBtn.onclick = (e) => toggleFavorite(spot.id, e);
+      }
+
+      modal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateModalFavBtn(spotId) {
+      if (currentModalSpotId !== spotId) return;
+      const favBtn = document.getElementById("modalFavBtn");
+      if (!favBtn) return;
+      const isFav = state.favorites.has(spotId);
+      favBtn.innerHTML = `<i data-lucide="heart" class="w-5 h-5 ${isFav ? 'text-akane fill-akane' : 'text-stone-600'}"></i>`;
+      favBtn.title = isFav ? "已收藏 (點擊取消)" : "加入收藏";
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeSpotModal() {
+      const modal = document.getElementById("spotDetailModal");
+      if (modal) modal.classList.add("hidden");
+      document.body.style.overflow = "";
+      currentModalSpotId = null;
+    }
+
+    // 支援點擊背景與鍵盤 Esc 關閉彈窗
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeSpotModal();
+      }
+    });
+
+    document.getElementById("spotDetailModal")?.addEventListener("click", (e) => {
+      if (e.target.id === "spotDetailModal") {
+        closeSpotModal();
+      }
+    });
+
+    /* -------------------------------------------------------------
+       8. 初始化啟動流程
+       ------------------------------------------------------------- */
+    window.addEventListener("DOMContentLoaded", () => {
+      loadSavedFavorites();
+      renderHomeShortcuts();
+      renderHomeFeaturedSpots();
+      setupSpotFilters();
+      setupItineraryTabs();
+      renderSpotsGrid();
+      renderItineraryDay();
 
       if (window.lucide) {
         lucide.createIcons();
       }
-    }
-
-    // 更新 Leaflet 地圖標記
-    function updateMapMarkers(stops) {
-      if (!mapInstance || !mapMarkersLayer) return;
-      mapMarkersLayer.clearLayers();
-      if (mapPolyline) {
-        mapInstance.removeLayer(mapPolyline);
-        mapPolyline = null;
-      }
-      mapMarkers = [];
-
-      const latLngs = [];
-      stops.forEach((stop, idx) => {
-        if (stop.lat && stop.lng) {
-          const latLng = [stop.lat, stop.lng];
-          latLngs.push(latLng);
-
-          const icon = L.divIcon({
-            className: "custom-div-icon",
-            html: `<div class="custom-map-pin w-6 h-6 leading-6 text-center">${idx + 1}</div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-          });
-
-          const marker = L.marker(latLng, { icon: icon }).addTo(mapMarkersLayer);
-          marker.bindPopup(`
-            <div class="p-1">
-              <div class="text-[10px] font-bold text-[#b83b26]">${stop.time} (停留 ${stop.duration})</div>
-              <div class="text-xs font-bold text-stone-900 font-wafu">${stop.name}</div>
-              <div class="text-[10px] text-stone-600 mt-1">${stop.notes ? stop.notes.slice(0, 50) + '...' : ''}</div>
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}&travelmode=transit" target="_blank" class="inline-block mt-2 px-2 py-1 bg-emerald-700 text-amber-50 rounded text-[10px] font-bold">
-                開啟 Google 導航
-              </a>
-            </div>
-          `);
-          mapMarkers.push(marker);
-        }
-      });
-
-      if (latLngs.length > 0) {
-        mapPolyline = L.polyline(latLngs, {
-          color: "#b83b26",
-          weight: 3,
-          opacity: 0.8,
-          dashArray: "5, 8"
-        }).addTo(mapInstance);
-
-        mapInstance.fitBounds(L.latLngBounds(latLngs), { padding: [25, 25], maxZoom: 14 });
-      }
-      setTimeout(() => { mapInstance.invalidateSize(); }, 250);
-    }
-
-    // WMO 天氣代碼解析與圖標對照
-    function decodeWMOWeather(code) {
-      if (code === 0) return { text: "晴天朗朗", icon: "sun", advice: "陽光明媚，紫外線略高，拍照效果極佳！" };
-      if ([1, 2].includes(code)) return { text: "多雲時晴", icon: "cloud-sun", advice: "氣候宜人舒適，非常適合戶外步行。" };
-      if (code === 3) return { text: "陰天遮日", icon: "cloud", advice: "雲層較厚稍涼，建議穿著防風薄外套。" };
-      if ([45, 48].includes(code)) return { text: "有霧/霧霾", icon: "cloud-fog", advice: "能見度稍低，過馬路與拍照請留意安全。" };
-      if ([51, 53, 55].includes(code)) return { text: "毛毛細雨", icon: "cloud-drizzle", advice: "有短暫飄雨，建議隨身攜帶折疊傘。" };
-      if ([61, 63, 65].includes(code)) return { text: "降雨天氣", icon: "cloud-rain", advice: "有雨，請備妥雨具並留意地面濕滑。" };
-      if ([71, 73, 75, 77].includes(code)) return { text: "飄雪/落雪", icon: "snowflake", advice: "雪景浪漫，氣溫偏低請務必穿戴發熱衣、圍巾與手套！" };
-      if ([80, 81, 82].includes(code)) return { text: "陣雨頻繁", icon: "cloud-rain", advice: "陣雨較為明顯，推薦穿防水防滑鞋與帶傘。" };
-      if ([95, 96, 99].includes(code)) return { text: "雷雨注意", icon: "cloud-lightning", advice: "戶外有雷雨可能，若雨勢大可多安排室內商場與景點。" };
-      return { text: "天氣平穩", icon: "cloud", advice: "請參考即時體感溫度安排合適衣物。" };
-    }
-
-    // 2月中旬（2/7~2/17）日本各區域歷史氣候統計數據（日本氣象廳 JMA 30年常模）
-    const FEBRUARY_CLIMATE_DATA = {
-      "北九州": {
-        tempRange: "4°C ~ 11°C",
-        low: "3°C",
-        rainChance: "約 25% (少雨季)",
-        condition: "海風凜冽 / 冬季多雲晴",
-        icon: "wind",
-        advice: "【門司港與小倉海風強】關門海峽旁陣風較大，體感比實際低溫更冷，務必配戴防風大衣、毛線帽與圍巾。"
-      },
-      "福岡": {
-        tempRange: "4°C ~ 11°C",
-        low: "4°C",
-        rainChance: "約 25%",
-        condition: "乾冷晴朗 / 偶有冬雨",
-        icon: "cloud-sun",
-        advice: "【太宰府與市區散策】白天太陽出來時體感約 10°C 上下，室內暖氣充足，穿脫方便的厚外套最為合適。"
-      },
-      "瀨戶內海": {
-        tempRange: "2°C ~ 8°C",
-        low: "1°C",
-        rainChance: "約 15% (晴朗少雨)",
-        condition: "夜間海上極寒 / 星空晴朗",
-        icon: "snowflake",
-        advice: "【名門大洋渡輪甲板】深夜在甲板上看瀨戶大橋夜景風勢強勁且氣溫逼近 0°C，到甲板拍照請務必穿齊羽絨外套。"
-      },
-      "奈良": {
-        tempRange: "1°C ~ 9°C",
-        low: "0°C",
-        rainChance: "約 20% (偶有飄雪)",
-        condition: "盆地寒冷 / 偶見微雪",
-        icon: "snowflake",
-        advice: "【奈良公園戶外空曠】空曠無遮蔽處早晨接近冰點，草地易有微霜，建議穿著保暖厚底鞋與發熱褲。"
-      },
-      "大阪": {
-        tempRange: "2°C ~ 10°C",
-        low: "2°C",
-        rainChance: "約 20% (降水機率低)",
-        condition: "冬季乾冷 / 晴天偏多",
-        icon: "sun",
-        advice: "【環球影城與市區逛街】USJ 臨海風大排隊時間長，請隨身攜帶暖暖包與手套；進商場血拼時容易熱，洋蔥式穿搭尤佳。"
-      },
-      "姬路": {
-        tempRange: "2°C ~ 9°C",
-        low: "1°C",
-        rainChance: "約 18%",
-        condition: "晴空清朗 / 偶有寒風",
-        icon: "cloud-sun",
-        advice: "【姬路城天守閣內部寒冷】登姬路天守閣需脫鞋走木質地板，冬天腳底非常凍，強烈建議穿著厚毛襪！"
-      },
-      "京都": {
-        tempRange: "1°C ~ 8°C",
-        low: "0°C",
-        rainChance: "約 25% (易有冬雪/底冷)",
-        condition: "京都底冷(底冷え) / 偶有飄雪",
-        icon: "snowflake",
-        advice: "【嵐山・清水寺・御苑】京都冬季特有的「底冷」寒氣透骨，尤其嵐山竹林比市區再低 2°C，圍巾、毛帽、發熱保暖層必備。"
-      }
-    };
-
-    // 依天數與區域載入 2 月出遊氣象指南（若在旅行當期或前7天，自動連線即時衛星數據）
-    async function fetchRealtimeWeather() {
-      const currentDay = itineraryData[currentDayIndex];
-      if (!currentDay || !currentDay.stops) return;
-
-      const validStop = currentDay.stops.find(s => s.lat && s.lng);
-      if (!validStop) return;
-
-      const cityName = currentDay.spotName || validStop.name;
-      const today = new Date();
-      const tripDateStr = currentDay.date.split(" ")[0].replace(/\//g, "-");
-      const tripDate = new Date(tripDateStr);
-      const diffDays = Math.ceil((tripDate - today) / (1000 * 60 * 60 * 24));
-
-      const modeBadge = document.getElementById("weatherModeBadge");
-
-      // 若距離出發日已小於 14 天（進入精準預報範圍），自動啟動真實衛星預報
-      if (diffDays >= 0 && diffDays <= 14) {
-        if (modeBadge) {
-          modeBadge.textContent = "衛星即時預報連線";
-          modeBadge.className = "text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-semibold";
-        }
-        weatherLocationName.textContent = `${cityName}・出遊日即時氣象`;
-        weatherCondition.textContent = "連線更新中...";
-
-        try {
-          const url = `https://api.open-meteo.com/v1/forecast?latitude=${validStop.lat}&longitude=${validStop.lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`;
-          const res = await fetch(url);
-          if (res.ok) {
-            const data = await res.json();
-            const dayIdx = data.daily.time.indexOf(tripDateStr);
-            const targetIdx = dayIdx !== -1 ? dayIdx : 0;
-            const maxTemp = Math.round(data.daily.temperature_2m_max[targetIdx]);
-            const minTemp = Math.round(data.daily.temperature_2m_min[targetIdx]);
-            const rainProb = data.daily.precipitation_probability_max[targetIdx] || 0;
-            const info = decodeWMOWeather(data.daily.weather_code[targetIdx]);
-
-            weatherTemp.textContent = `${minTemp}°C ~ ${maxTemp}°C`;
-            weatherApparent.textContent = `${minTemp}°C`;
-            weatherWind.textContent = `${rainProb}%`;
-            weatherCondition.textContent = info.text;
-            weatherIconBox.innerHTML = `<i data-lucide="${info.icon}" class="w-6 h-6 text-[#b83b26]"></i>`;
-            weatherAdvice.textContent = `【出發即時預報】${info.advice} 降雨機率為 ${rainProb}%。`;
-            if (window.lucide) lucide.createIcons();
-            return;
-          }
-        } catch (e) {
-          console.warn("Realtime forecast fetch error, fallback to climate norm", e);
-        }
-      }
-
-      // 出發前籌劃期：使用精確的 2 月中旬歷史常模數據與防寒指引
-      if (modeBadge) {
-        modeBadge.textContent = "2月中旬氣候常模";
-        modeBadge.className = "text-[10px] bg-[#faebe8] text-[#b83b26] border border-[#edd5d0] px-2 py-0.5 rounded-full font-semibold";
-      }
-      weatherLocationName.textContent = `${currentDay.date.split(" ")[0]}・${cityName} 出遊氣候預測`;
-
-      let regionKey = "大阪";
-      if (currentDay.day === 1) regionKey = "北九州";
-      else if (currentDay.day === 2 || currentDay.day === 3) regionKey = (currentDay.day === 3 && validStop.name.includes("門司")) ? "瀨戶內海" : "福岡";
-      else if (currentDay.day === 4) regionKey = "奈良";
-      else if (currentDay.day === 5 || currentDay.day === 6) regionKey = "大阪";
-      else if (currentDay.day === 7) regionKey = "姬路";
-      else if (currentDay.day >= 8) regionKey = "京都";
-
-      const cData = FEBRUARY_CLIMATE_DATA[regionKey] || FEBRUARY_CLIMATE_DATA["大阪"];
-      weatherTemp.textContent = cData.tempRange;
-      weatherApparent.textContent = cData.low;
-      weatherWind.textContent = cData.rainChance;
-      weatherCondition.textContent = cData.condition;
-      weatherIconBox.innerHTML = `<i data-lucide="${cData.icon}" class="w-6 h-6 text-[#1e2f47]"></i>`;
-      weatherAdvice.textContent = cData.advice;
-
-      if (window.lucide) lucide.createIcons();
-    }
-
-    function renderAll() {
-      renderDayView();
-      fetchRealtimeWeather();
-    }
-
-    // Modal 開啟與關閉
-    function openModal(isEdit = false, index = -1) {
-      modalOverlay.classList.remove("hidden");
-      if (isEdit && index >= 0) {
-        modalTitle.textContent = "編輯行程點";
-        editIndexInput.value = index;
-        const stop = itineraryData[currentDayIndex].stops[index];
-        itemTimeInput.value = stop.time || "";
-        itemNameInput.value = stop.name || "";
-        itemDurationInput.value = stop.duration || "";
-        itemLatInput.value = stop.lat || "";
-        itemLngInput.value = stop.lng || "";
-        itemNotesInput.value = stop.notes || "";
-        itemFoodsInput.value = stop.foods || "";
-      } else {
-        modalTitle.textContent = "新增行程點";
-        editIndexInput.value = -1;
-        itemTimeInput.value = "10:00";
-        itemNameInput.value = "";
-        itemDurationInput.value = "1時00分";
-        itemLatInput.value = "";
-        itemLngInput.value = "";
-        itemNotesInput.value = "";
-        itemFoodsInput.value = "";
-      }
-    }
-
-    function closeModal() {
-      modalOverlay.classList.add("hidden");
-    }
-
-    // 行程卡片點擊委派（導航、定位、編輯、刪除）
-    mobileCardsContainer.addEventListener("click", (e) => {
-      const navBtn = e.target.closest("button[data-action='navigate']");
-      if (navBtn) {
-        const dest = navBtn.dataset.dest;
-        const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=transit`;
-        const newWin = window.open(mapUrl, "_blank");
-        if (!newWin || newWin.closed || typeof newWin.closed === "undefined") {
-          window.location.href = mapUrl;
-        }
-        return;
-      }
-
-      const locateBtn = e.target.closest("button[data-action='locate']");
-      if (locateBtn) {
-        const idx = parseInt(locateBtn.dataset.index, 10);
-        focusStopOnMap(idx);
-        return;
-      }
-
-      const editBtn = e.target.closest("button[data-action='edit']");
-      if (editBtn) {
-        const idx = parseInt(editBtn.dataset.index, 10);
-        openModal(true, idx);
-        return;
-      }
-
-      const deleteBtn = e.target.closest("button[data-action='delete']");
-      if (deleteBtn) {
-        const idx = parseInt(deleteBtn.dataset.index, 10);
-        itineraryData[currentDayIndex].stops.splice(idx, 1);
-        saveData();
-        renderAll();
-        return;
-      }
-
-      // 點擊整張景點卡片（排除點擊按鈕或特定連結時）自動將地圖移動至該景點
-      const clickedCard = e.target.closest("[data-card-index]");
-      if (clickedCard && !e.target.closest("button") && !e.target.closest("a")) {
-        const idx = parseInt(clickedCard.dataset.cardIndex, 10);
-        focusStopOnMap(idx);
-      }
-    });
-
-    // 聚焦地圖至特定景點標記
-    function focusStopOnMap(idx) {
-      if (mapMarkers[idx]) {
-        if (itineraryMap.classList.contains("h-36")) {
-          itineraryMap.classList.remove("h-36");
-          itineraryMap.classList.add("h-72", "sm:h-96");
-          toggleMapSizeText.textContent = "放大地圖";
-          mapInstance.invalidateSize();
-        }
-        // 平滑移動並縮放到周圍約 3 公里的視覺範圍 (zoom level 14)
-        const targetLatLng = mapMarkers[idx].getLatLng();
-        mapInstance.flyTo(targetLatLng, 14, { animate: true, duration: 0.8 });
-        mapMarkers[idx].openPopup();
-      }
-    }
-
-    expenseList.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-del-exp]");
-      if (btn) {
-        const idx = parseInt(btn.dataset.delExp, 10);
-        expenses.splice(idx, 1);
-        renderExpenses();
-      }
-    });
-
-    // 打包清單渲染與互動
-    function renderChecklist() {
-      checklistItems.innerHTML = "";
-      let doneCount = 0;
-      checklist.forEach((item, idx) => {
-        if (item.done) doneCount++;
-        const el = document.createElement("label");
-        el.className = `flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition ${
-          item.done ? "bg-[#f2ece0]/60 border-[#ded5c2] line-through text-stone-400" : "bg-white border-[#ded5c2] text-stone-800"
-        }`;
-        el.innerHTML = `
-          <input type="checkbox" data-check-idx="${idx}" ${item.done ? "checked" : ""} class="rounded text-[#b83b26] focus:ring-[#b83b26] w-4 h-4">
-          <span class="font-medium">${item.text}</span>
-        `;
-        checklistItems.appendChild(el);
-      });
-
-      checklistProgress.textContent = `${doneCount}/${checklist.length} 完成`;
-      try {
-        localStorage.setItem(CHECKLIST_KEY, JSON.stringify(checklist));
-      } catch(e) {}
-    }
-
-    checklistItems.addEventListener("change", (e) => {
-      if (e.target.dataset.checkIdx !== undefined) {
-        const idx = parseInt(e.target.dataset.checkIdx, 10);
-        checklist[idx].done = e.target.checked;
-        renderChecklist();
-      }
-    });
-
-    itemForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const idx = parseInt(editIndexInput.value, 10);
-      const newStop = {
-        time: itemTimeInput.value,
-        name: itemNameInput.value.trim(),
-        duration: itemDurationInput.value.trim(),
-        lat: itemLatInput.value ? parseFloat(itemLatInput.value) : undefined,
-        lng: itemLngInput.value ? parseFloat(itemLngInput.value) : undefined,
-        notes: itemNotesInput.value.trim(),
-        foods: itemFoodsInput.value.trim()
-      };
-
-      if (idx >= 0) {
-        itineraryData[currentDayIndex].stops[idx] = newStop;
-      } else {
-        if (!itineraryData[currentDayIndex].stops) itineraryData[currentDayIndex].stops = [];
-        itineraryData[currentDayIndex].stops.push(newStop);
-        itineraryData[currentDayIndex].stops.sort((a, b) => a.time.localeCompare(b.time));
-      }
-
-      saveData();
-      closeModal();
-      renderAll();
-    });
-
-    addStopBtn.addEventListener("click", () => openModal(false));
-    closeModalBtn.addEventListener("click", closeModal);
-    cancelModalBtn.addEventListener("click", closeModal);
-    modalOverlay.addEventListener("click", (e) => {
-      if (e.target === modalOverlay) closeModal();
-    });
-
-    if (refreshWeatherBtn) {
-      refreshWeatherBtn.addEventListener("click", () => {
-        fetchRealtimeWeather();
-      });
-    }
-
-    let mapState = 1; // 0: 迷你模式(h-36), 1: 預設大(h-72/h-96), 2: 超大視角(h-[68vh])
-
-    function cycleMapSize() {
-      mapState = (mapState + 1) % 3;
-      itineraryMap.className = "w-full rounded-xl border border-[#ded5c2] overflow-hidden z-10 transition-all duration-300";
-
-      if (mapState === 0) {
-        itineraryMap.classList.add("h-36");
-        toggleMapSizeText.textContent = "展開地圖";
-        if (floatingMapResizeText) floatingMapResizeText.textContent = "迷你 (144px)";
-        toggleMapSizeBtn.querySelector("i")?.setAttribute("data-lucide", "minimize-2");
-      } else if (mapState === 1) {
-        itineraryMap.classList.add("h-72", "sm:h-96");
-        toggleMapSizeText.textContent = "超大視角";
-        if (floatingMapResizeText) floatingMapResizeText.textContent = "標準視角";
-        toggleMapSizeBtn.querySelector("i")?.setAttribute("data-lucide", "maximize-2");
-      } else {
-        itineraryMap.classList.add("h-[68vh]");
-        toggleMapSizeText.textContent = "收回預設";
-        if (floatingMapResizeText) floatingMapResizeText.textContent = "全螢幕中";
-        toggleMapSizeBtn.querySelector("i")?.setAttribute("data-lucide", "shrink");
-      }
-
-      setTimeout(() => {
-        if (mapInstance) mapInstance.invalidateSize();
-        if (window.lucide) lucide.createIcons();
-      }, 310);
-    }
-
-    if (toggleMapSizeBtn) {
-      toggleMapSizeBtn.addEventListener("click", cycleMapSize);
-    }
-    if (floatingMapResizeBtn) {
-      floatingMapResizeBtn.addEventListener("click", cycleMapSize);
-    }
-
-    // 自由拖曳下邊框調整地圖高度 (支援滑鼠與手機觸控 Touch)
-    const mapResizeHandle = document.getElementById("mapResizeHandle");
-    if (mapResizeHandle) {
-      let isDragging = false;
-      let startY = 0;
-      let startHeight = 0;
-
-      const onDragStart = (clientY) => {
-        isDragging = true;
-        startY = clientY;
-        startHeight = itineraryMap.offsetHeight;
-        document.body.style.userSelect = "none";
-      };
-
-      const onDragMove = (clientY) => {
-        if (!isDragging) return;
-        const delta = clientY - startY;
-        // 限制高度在 120px 到螢幕高 75% 之間
-        const newHeight = Math.max(120, Math.min(window.innerHeight * 0.75, startHeight + delta));
-        itineraryMap.style.height = `${newHeight}px`;
-        if (mapInstance) mapInstance.invalidateSize();
-      };
-
-      const onDragEnd = () => {
-        if (!isDragging) return;
-        isDragging = false;
-        document.body.style.userSelect = "";
-        if (mapInstance) mapInstance.invalidateSize();
-      };
-
-      // 滑鼠事件
-      mapResizeHandle.addEventListener("mousedown", (e) => {
-        onDragStart(e.clientY);
-        const mouseMoveHandler = (e) => onDragMove(e.clientY);
-        const mouseUpHandler = () => {
-          onDragEnd();
-          window.removeEventListener("mousemove", mouseMoveHandler);
-          window.removeEventListener("mouseup", mouseUpHandler);
-        };
-        window.addEventListener("mousemove", mouseMoveHandler);
-        window.addEventListener("mouseup", mouseUpHandler);
-      });
-
-      // 手機觸控事件
-      mapResizeHandle.addEventListener("touchstart", (e) => {
-        if (e.touches.length > 0) {
-          onDragStart(e.touches[0].clientY);
-        }
-      }, { passive: true });
-
-      window.addEventListener("touchmove", (e) => {
-        if (isDragging && e.touches.length > 0) {
-          onDragMove(e.touches[0].clientY);
-        }
-      }, { passive: true });
-
-      window.addEventListener("touchend", onDragEnd);
-      window.addEventListener("touchcancel", onDragEnd);
-    }
-
-    resetBtn.addEventListener("click", () => {
-      itineraryData = JSON.parse(JSON.stringify(DEFAULT_ITINERARY));
-      saveData();
-      renderAll();
-    });
-
-    exportBtn.addEventListener("click", () => {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(itineraryData, null, 2));
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "九州大阪11日行程表.json");
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    });
-
-    // 智慧捲動：下滑時自動收折頂部 Header，上滑時自動恢復
-    let lastScrollY = window.scrollY;
-    const mainHeader = document.getElementById("mainHeader");
-    const mapWrapper = document.getElementById("mapWrapper");
-    const SCROLL_THRESHOLD = 8; // 滾動緩衝閾值
-
-    window.addEventListener("scroll", () => {
-      const currentScrollY = window.scrollY;
-      const scrollDiff = currentScrollY - lastScrollY;
-
-      // 只有當向下滾動超過一定幅度且不在最頂部時觸發收折
-      if (scrollDiff > SCROLL_THRESHOLD && currentScrollY > 120) {
-        if (!mainHeader.classList.contains("nav-hidden")) {
-          mainHeader.classList.add("nav-hidden");
-          if (mapWrapper) mapWrapper.classList.add("map-pinned-top");
-        }
-      } else if (scrollDiff < -SCROLL_THRESHOLD || currentScrollY <= 60) {
-        // 向上輕微滾動或回到接近頂部時自動展開
-        if (mainHeader.classList.contains("nav-hidden")) {
-          mainHeader.classList.remove("nav-hidden");
-          if (mapWrapper) mapWrapper.classList.remove("map-pinned-top");
-        }
-      }
-      lastScrollY = currentScrollY;
-    }, { passive: true });
-
-    // 啟動應用
-    window.addEventListener("DOMContentLoaded", () => {
-      initMap();
-      renderAll();
-      fetchLiveExchangeRate();
     });
   </script>
 </body>
